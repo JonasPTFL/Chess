@@ -14,4 +14,8 @@ enum class PieceColor {
             Black -> White
         }
     }
+
+    fun isOpposite(color: PieceColor): Boolean {
+        return this == color.opposite()
+    }
 }

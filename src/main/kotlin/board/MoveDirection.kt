@@ -22,5 +22,11 @@ enum class MoveDirection(val xDirection: Int, val yDirection: Int) {
     DownDownLeft(-1,-2),
     DownLeftLeft(-2,-1),
     UpLeftLeft(-2,1),
-    UpUpLeft(-1,2)
+    UpUpLeft(-1,2);
+
+    companion object {
+        fun getAllNormalDirections(): Set<MoveDirection> {
+            return setOf(Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft)
+        }
+    }
 }

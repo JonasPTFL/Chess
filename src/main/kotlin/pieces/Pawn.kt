@@ -4,9 +4,9 @@ import board.*
 
 class Pawn(
     override val color: PieceColor,
-    override var position: Position,
+    initialPosition: Position,
     override var board: Board
-) : Piece(PieceType.Pawn, color, position, board) {
+) : Piece(PieceType.Pawn, color, initialPosition, board) {
     override fun getValidMoves(board: Board): List<Move> {
         val validMoves = mutableListOf<Move>()
         validMoves.addAll(

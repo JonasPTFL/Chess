@@ -7,44 +7,51 @@ import board.*
  * @author Jonas Pollpeter
  */
 
-abstract class Piece(
+open class Piece(
     val type: PieceType,
     open val color: PieceColor,
-    protected open var position: Position,
+    initialPosition: Position,
     open val board: Board,
 ) {
 
     protected var hasMoved: Boolean = false
+    var position = initialPosition
+        protected set
 
-    abstract fun getValidMoves(board: Board): List<Move>
+    open fun getValidMoves(board: Board): List<Move> {
+        return type.moveDirections
+            .map { getValidMovesInDirection(it, type.defaultMoveCount) }
+            .flatten()
+    }
 
     protected fun getValidMovesInDirection(
         moveDirection: MoveDirection,
         moveCount: Int = 1,
         moveType: MoveType = MoveType.Normal,
     ): List<Move> {
-        if (moveCount < 1) {
-            throw IllegalArgumentException("moveWidth must be greater than 0")
-        }
-
         val validMoves = mutableListOf<Move>()
-        var nextPosition: Position = position
         var remainingMoves = moveCount
-        if (moveType in listOf(MoveType.Normal, MoveType.NoHit, MoveType.Promotion)) {
-            while (remainingMoves > 0) {
-                nextPosition = nextPosition.plus(moveDirection)
-                if (nextPosition.isOnBoard() && !board.isOccupied(nextPosition)) {
-                    validMoves.add(Move(this, position, nextPosition))
-                    remainingMoves--
-                } else {
+        var newPosition = position
+
+        while (remainingMoves > 0) {
+            newPosition = newPosition.plus(moveDirection)
+            // cancel move if position is not on board
+            if (!newPosition.isOnBoard()) break
+
+            val pieceAtPosition = board.getPiece(newPosition)
+            when {
+                // no piece at position, move normally
+                moveType.canMoveNormally() && pieceAtPosition == null -> validMoves.add(Move(this, position, newPosition))
+                // opponent piece at position, move by hitting
+                moveType.canHit() && pieceAtPosition.isOppositeColor(this) -> {
+                    validMoves.add(Move(this, position, newPosition))
                     break
                 }
+                // own piece at position, cancel move
+                pieceAtPosition != null -> break
             }
-        }
 
-        // check if another move is valid by hitting an enemy piece
-        if (remainingMoves > 0 && moveType.canHit() && nextPosition.isOnBoard() && board.isOccupiedByColor(nextPosition, color.opposite())) {
-            validMoves.add(Move(this, position, nextPosition))
+            remainingMoves--
         }
         return validMoves
     }
@@ -53,6 +60,13 @@ abstract class Piece(
         position = to
         if (!hasMoved) {
             hasMoved = true
+        }
+    }
+
+
+    companion object {
+        fun Piece?.isOppositeColor(other: Piece?): Boolean {
+            return this != null && other != null && this.color.isOpposite(other.color)
         }
     }
 }

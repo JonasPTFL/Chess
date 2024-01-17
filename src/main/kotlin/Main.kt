@@ -1,7 +1,6 @@
 import board.Board
 import gui.Visualizer
 import javax.swing.SwingUtilities
-import kotlin.concurrent.thread
 
 fun main() {
     println("Chess")
@@ -13,11 +12,11 @@ fun main() {
         visualizer?.isVisible = true
     }
 
-    thread {
-        while (true) {
-            board.doRandomValidMove()
-            visualizer?.update()
-            Thread.sleep(1000)
-        }
-    }
+//    thread {
+//        while (true) {
+//            board.doRandomValidMove()
+//            visualizer?.update()
+//            Thread.sleep(1000)
+//        }
+//    }
 }

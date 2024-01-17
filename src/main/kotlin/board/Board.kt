@@ -1,6 +1,5 @@
 package board
 
-import filterNotNull
 import pieces.Piece
 import pieces.PieceColor
 import pieces.PieceFactory
@@ -25,7 +24,8 @@ class Board {
         PieceType.Rook
     )
 
-    private var turn = PieceColor.White
+    var turn = PieceColor.White
+        private set
 
     init {
         initializeBoard()
@@ -91,7 +91,15 @@ class Board {
         randomMove.execute(this)
     }
 
-    private fun getAllPieces(color: PieceColor): List<Piece> {
-        return board.flatten().filterNotNull { it.color == color }
+    fun getAllPieces(): List<Piece> {
+        return board.flatten().filterNotNull()
+    }
+
+    fun getAllPieces(color: PieceColor): List<Piece> {
+        return getAllPieces().filter { it.color == color }
+    }
+
+    fun isValidMove(move: Move): Boolean {
+        return move.piece.getValidMoves(this).any { it.to == move.to }
     }
 }
