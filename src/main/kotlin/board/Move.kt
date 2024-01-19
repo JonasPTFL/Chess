@@ -35,6 +35,11 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
         board.addMove(this)
     }
 
+    fun executeOnNewBoard(board: Board): Board {
+        internalExecute(board)
+        return board
+    }
+
     fun revert(board: Board) {
         if (moveType == MoveType.Promotion) {
             board.setPiece(to, piece)
@@ -49,11 +54,11 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
         board.removeLastMove()
     }
 
-    fun blocksCheck(board: Board, color: PieceColor): Boolean {
+    fun isCheckSafe(board: Board, color: PieceColor): Boolean {
         internalExecute(board)
-        val blocksCheck = !board.isCheck(color)
+        val checkSafe = !board.isCheck(color)
         revert(board)
-        return blocksCheck
+        return checkSafe
     }
 
     private fun applyCastling(board: Board) {
@@ -79,5 +84,9 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
 
     fun hasCapturedPiece(): Boolean {
         return capturedPiece != null
+    }
+
+    override fun toString(): String {
+        return "${piece.color} ${piece.type} from ${from.x},${from.y} to ${to.x},${to.y}"
     }
 }

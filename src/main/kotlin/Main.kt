@@ -11,7 +11,7 @@ import kotlin.concurrent.thread
 fun main() {
     println("Chess")
 
-    playGames(n = 4, delayBetweenMoves = 10, delayBetweenGames = 1000, concurrent = false)
+    playGames(n = 1, delayBetweenMoves = 10, delayBetweenGames = 1000, concurrent = false, asColor = setOf(PieceColor.White, PieceColor.Black))
 }
 
 fun playGames(

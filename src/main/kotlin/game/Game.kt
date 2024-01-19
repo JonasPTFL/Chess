@@ -2,6 +2,7 @@ package game
 
 import board.Board
 import board.Move
+import engine.Engine
 import pieces.PieceColor
 import pieces.PieceType
 import kotlin.concurrent.thread
@@ -23,6 +24,11 @@ class Game(
 
     var state = GameState.Initial
         private set
+    private val computerEngine = Engine(
+        maxDepth = 1,
+        pieceValue = 1f,
+        piecePossibleMoveSize = 1f,
+    )
 
     init {
         board.initializeBoard()
@@ -32,7 +38,7 @@ class Game(
     fun start() {
         if (state == GameState.Initial) {
             state = GameState.Running
-            onWhiteTurn?.invoke() ?: doRandomValidMove()
+            onWhiteTurn?.invoke() ?: doNextComputerMove()
         }
     }
 
@@ -45,7 +51,7 @@ class Game(
 
     private fun updateGameState() {
         state = when {
-            board.isCheckMate(board.turn) || board.isCheckMate(board.turn.opposite()) -> GameState.Checkmate
+            board.isCheckMate() -> GameState.Checkmate
             board.isStaleMate(board.turn) || board.isStaleMate(board.turn.opposite()) -> GameState.Stalemate
             board.isInSufficientMaterial() -> GameState.InSufficientMaterialDraw
             board.isThreefoldRepetition() -> GameState.ThreefoldRepetitionDraw
@@ -64,11 +70,16 @@ class Game(
             // execute next turn on separate thread, to not block the visualizer and code execution of other players
             thread {
                 when (board.turn) {
-                    PieceColor.White -> onWhiteTurn?.invoke() ?: doRandomValidMove()
-                    PieceColor.Black -> onBlackTurn?.invoke() ?: doRandomValidMove()
+                    PieceColor.White -> onWhiteTurn?.invoke() ?: doNextComputerMove()
+                    PieceColor.Black -> onBlackTurn?.invoke() ?: doNextComputerMove()
                 }
             }
         }
+    }
+
+    private fun doNextComputerMove() {
+        val computerMove = computerEngine.getBestMove(board)
+        computerMove.execute(this)
     }
 
     private fun doRandomValidMove() {

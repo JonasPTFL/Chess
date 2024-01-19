@@ -106,8 +106,16 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
         return getAllPieces(color).any { it.type == PieceType.King && it.position.isThreatened(color.opposite(), this) }
     }
 
+    fun isCheckMate(): Boolean {
+        return isCheckMate(turn) || isCheckMate(turn.opposite())
+    }
+
     fun isCheckMate(color: PieceColor): Boolean {
         return isCheck(color) && getAllPieces(color).all { it.getValidMoves().isEmpty() }
+    }
+
+    fun isStaleMate(): Boolean {
+        return isStaleMate(turn) || isStaleMate(turn.opposite())
     }
 
     fun isStaleMate(color: PieceColor): Boolean {
@@ -115,7 +123,7 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     }
 
     fun isDraw(): Boolean {
-        return isStaleMate(turn) || isStaleMate(turn.opposite()) || isInSufficientMaterial() || isThreefoldRepetition() || isFiftyMoveRule()
+        return isStaleMate() || isInSufficientMaterial() || isThreefoldRepetition() || isFiftyMoveRule()
     }
 
     fun isThreefoldRepetition(): Boolean {
@@ -150,6 +158,10 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
         }
     }
 
+    fun getMoves(): List<Move> {
+        return moves
+    }
+
     fun getLastMove(): Move? {
         return moves.lastOrNull()
     }
@@ -171,5 +183,38 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
 
     fun setOnPromotionRequest(onPromotionPieceRequired: ((xPosition: Int) -> PieceType?)?) {
         this.onPromotionPieceRequired = onPromotionPieceRequired
+    }
+
+    fun copy(): Board {
+        val newBoard = Board()
+        newBoard.turn = turn
+        newBoard.moves.addAll(moves)
+        for (x in 0..7) {
+            for (y in 0..7) {
+                val piece = getPiece(Position(x, y))
+                if (piece != null) {
+                    val newPiece = PieceFactory.createPiece(piece.type, piece.color, piece.position, newBoard)
+                    newPiece.hasMoved = piece.hasMoved
+                    newBoard.setPiece(Position(x, y), newPiece)
+                }
+            }
+        }
+        return newBoard
+    }
+
+    fun printToConsole() {
+        val greenColor = "\u001b[32m"
+        val reset = "\u001b[0m" // to reset color to the default
+        println("  0 1 2 3 4 5 6 7")
+        for (y in 7 downTo 0) {
+            print("$y ")
+            for (x in 0..7) {
+                val piece = getPiece(Position(x, y))
+                if (piece?.color == PieceColor.White) print(greenColor)
+                print("${piece?.type?.getCharacterIdentifier() ?: " "} ")
+                if (piece?.color == PieceColor.White) print(reset)
+            }
+            println()
+        }
     }
 }

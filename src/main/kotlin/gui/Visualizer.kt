@@ -12,8 +12,6 @@ import pieces.PieceType
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.awt.geom.AffineTransform
-import java.awt.image.AffineTransformOp
 import java.io.File
 import java.io.IOException
 import javax.imageio.ImageIO
@@ -101,33 +99,22 @@ class Visualizer(
         boardPanel = object : JPanel() {
             override fun paintComponent(g: Graphics) {
                 super.paintComponent(g)
-
-                val g2d = g as Graphics2D
-                val old = g2d.transform
-                // rotate board
-                g2d.rotate(
-                    Math.toRadians(if (boardFlipped) 180.0 else 0.0),
-                    width.toDouble() / 2,
-                    height.toDouble() / 2
-                )
-
                 val validMovePositions = selectedPiece?.getValidMoves()?.map { it.to } ?: emptyList()
                 for (x in 0..7) {
                     for (y in 0..7) {
-                        drawSquareBackground(g, x, y)
+                        val xPanelCoordinate = x.toPanelXPosition()
+                        val yPanelCoordinate = y.toPanelYPosition()
+                        val position = Position(x, y)
+                        val piece = board.getPiece(position)
+                        drawSquareBackground(g, xPanelCoordinate, yPanelCoordinate, position)
 
-                        board.getPiece(Position(x, y))?.let {
-                            drawPieceTexture(g, x, y, it)
-                        }
+                        if (piece != null) drawPieceTexture(g, xPanelCoordinate, yPanelCoordinate, piece)
 
-                        if (validMovePositions.contains(Position(x, y))) {
-                            drawValidMoveMarker(g, x, y)
+                        if (validMovePositions.contains(position)) {
+                            drawValidMoveMarker(g, xPanelCoordinate, yPanelCoordinate, position)
                         }
                     }
                 }
-
-                g2d.transform = old
-
                 if (promotionMove != null) drawPromotionSelection(g)
 
                 drawGameState(g)
@@ -146,9 +133,7 @@ class Visualizer(
                         }
                     }
                 }
-                val clickXPos = if (boardFlipped) componentWidth - e.x else e.x
-                val clickYPos = if (boardFlipped) componentHeight - e.y else e.y
-                val clickedPosition = Position(clickXPos / squareSize, clickYPos / squareSize)
+                val clickedPosition = Position((e.x / squareSize).toPanelXPosition(), (e.y / squareSize).toPanelYPosition())
                 val clickedPiece = board.getPiece(clickedPosition)
 
                 val clickedMove = selectedPiece?.getValidMoves()?.find { move -> move.to == clickedPosition }
@@ -183,9 +168,21 @@ class Visualizer(
         add(boardPanel)
     }
 
-    private fun drawSquareBackground(g: Graphics, x: Int, y: Int) {
-        val isSelected = selectedPiece?.position == Position(x, y)
-        val isWhiteSquare = Position(x, y).getColor() == PieceColor.White
+    private fun Int.toPanelXPosition(): Int {
+        return if (boardFlipped) 7 - this else this
+    }
+
+    private fun Int.toPanelYPosition(): Int {
+        return if (boardFlipped) this else 7 - this
+    }
+
+    private fun Position.isWhiteOnPanel(): Boolean {
+        return getColor() != PieceColor.White
+    }
+
+    private fun drawSquareBackground(g: Graphics, x: Int, y: Int, position: Position) {
+        val isSelected = selectedPiece?.position == Position(position.x, position.y)
+        val isWhiteSquare = position.isWhiteOnPanel()
 
         // determine background color of square
         g.color = when {
@@ -207,25 +204,17 @@ class Visualizer(
             if (piece.color == PieceColor.White) 0 else chessPiecesTexture.height / 2,
             chessPiecesTexture.width / texturePieceCount,
             chessPiecesTexture.height / 2
-        )
-
-        val rotationRequired = Math.toRadians(if (boardFlipped) 180.0 else 0.0)
-        val locationX: Double = img.width / 2.0
-        val locationY: Double = img.height / 2.0
-        val tx = AffineTransform.getRotateInstance(rotationRequired, locationX, locationY)
-        val op = AffineTransformOp(tx, AffineTransformOp.TYPE_BILINEAR)
-
-        val scaledImg = op.filter(img, null).getScaledInstance(
+        ).getScaledInstance(
             squareSize,
             squareSize,
             Image.SCALE_SMOOTH
         )
 
-        g.drawImage(scaledImg, x * squareSize, y * squareSize, null)
+        g.drawImage(img, x * squareSize, y * squareSize, null)
     }
 
-    private fun drawValidMoveMarker(g: Graphics, x: Int, y: Int) {
-        g.color = if (Position(x, y).getColor() == PieceColor.White) colorSelectedWhiteSquare else colorSelectedBlackSquare
+    private fun drawValidMoveMarker(g: Graphics, x: Int, y: Int, position: Position) {
+        g.color = if (position.isWhiteOnPanel()) colorSelectedWhiteSquare else colorSelectedBlackSquare
         val centerOffset = (squareSize - moveIndicatorSize) / 2
         g.fillOval(
             x * squareSize + centerOffset,
@@ -256,7 +245,7 @@ class Visualizer(
         g.drawString(text, (componentWidth - textWidth) / 2, (componentHeight - textHeight) / 2)
     }
 
-    private fun drawPromotionSelection(g: Graphics2D) {
+    private fun drawPromotionSelection(g: Graphics) {
         drawOverlayBackground(g)
         promotionPieceTypes.forEachIndexed { index, pieceType ->
             val img = chessPiecesTexture.getSubimage(
@@ -275,7 +264,7 @@ class Visualizer(
             else colorPromotionCircleBackground
 
             val xPos =
-                if (boardFlipped) componentWidth - (promotionXPosition+1) * squareSize else promotionXPosition * squareSize
+                if (boardFlipped) componentWidth - (promotionXPosition + 1) * squareSize else promotionXPosition * squareSize
             val yPos = index * squareSize
             g.fillOval(xPos, yPos, squareSize, squareSize)
 
@@ -291,7 +280,7 @@ class Visualizer(
     private fun isMouseHoveringOverPromotionPiece(index: Int): Boolean {
         lastMousePosition?.let {
             val xPosStart =
-                if (boardFlipped) componentWidth - (promotionXPosition+1) * squareSize else promotionXPosition * squareSize
+                if (boardFlipped) componentWidth - (promotionXPosition + 1) * squareSize else promotionXPosition * squareSize
             val xPosEnd =
                 if (boardFlipped) componentWidth - (promotionXPosition) * squareSize else (promotionXPosition + 1) * squareSize
             return it.x in xPosStart until xPosEnd
