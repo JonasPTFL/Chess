@@ -107,7 +107,7 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     }
 
     fun isCheckMate(color: PieceColor): Boolean {
-        return isCheck(color) && getAllPieces(color).any { it.type == PieceType.King && it.getValidMoves().isEmpty() }
+        return isCheck(color) && getAllPieces(color).all { it.getValidMoves().isEmpty() }
     }
 
     fun isStaleMate(color: PieceColor): Boolean {

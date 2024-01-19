@@ -134,7 +134,7 @@ class Visualizer(
         }
         val mouseListener = object : MouseAdapter() {
             override fun mousePressed(e: MouseEvent) {
-                if (game.isRunning() || !allowedToMove) return
+                if (!game.isRunning() || !allowedToMove) return
                 if (promotionMove != null) {
                     promotionPieceTypes.forEachIndexed { index, pieceType ->
                         if (isMouseHoveringOverPromotionPiece(index)) {
@@ -166,6 +166,7 @@ class Visualizer(
                     // deselect piece, if clicked position is not valid or move was executed
                     null
                 }
+                update()
             }
 
             override fun mouseMoved(e: MouseEvent?) {
