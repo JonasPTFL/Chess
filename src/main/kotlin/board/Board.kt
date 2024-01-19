@@ -10,9 +10,8 @@ import pieces.PieceType
  * @author Jonas Pollpeter
  */
 
-class Board {
+class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
 
-    private val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }
     private val edgePieces = listOf(
         PieceType.Rook,
         PieceType.Knight,
@@ -27,10 +26,6 @@ class Board {
     var turn = PieceColor.White
         private set
 
-    init {
-        initializeBoard()
-    }
-
     /**
      * Returns the piece at a given position.
      */
@@ -41,7 +36,7 @@ class Board {
     /**
      * Sets a piece at a given position.
      */
-    private fun setPiece(position: Position, piece: Piece?) {
+    public fun setPiece(position: Position, piece: Piece?) {
         board[position.x][position.y] = piece
     }
 
@@ -62,7 +57,7 @@ class Board {
     /**
      * Initializes the board with the standard chess setup.
      */
-    private fun initializeBoard() {
+    public fun initializeBoard() {
         // edge pieces
         for (i in 0..7) {
             val positionWhite = Position(i, 0)
@@ -86,7 +81,7 @@ class Board {
 
     fun doRandomValidMove() {
         val pieces = getAllPieces(turn)
-        val validMoves = pieces.flatMap { it.getValidMoves(this) }
+        val validMoves = pieces.flatMap { it.getValidMoves() }
         val randomMove = validMoves.random()
         randomMove.execute(this)
     }
@@ -100,6 +95,18 @@ class Board {
     }
 
     fun isValidMove(move: Move): Boolean {
-        return move.piece.getValidMoves(this).any { it.to == move.to }
+        return move.piece.getValidMoves().any { it.to == move.to }
+    }
+
+    fun isCheck(color: PieceColor): Boolean {
+        return getAllPieces(color).any { it.type == PieceType.King && it.position.isThreatened(color.opposite(), this) }
+    }
+
+    fun isCheckMate(color: PieceColor): Boolean {
+        return isCheck(color) && getAllPieces(color).any { it.type == PieceType.King && it.getValidMoves().isEmpty() }
+    }
+
+    fun isStaleMate(color: PieceColor): Boolean {
+        return !isCheck(color) && getAllPieces(color).all { it.getValidMoves().isEmpty() }
     }
 }

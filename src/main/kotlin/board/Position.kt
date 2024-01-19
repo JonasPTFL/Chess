@@ -18,13 +18,18 @@ data class Position(val x: Int, val y: Int) {
 
     fun isThreatened(color: PieceColor, board: Board): Boolean {
         board.getAllPieces(color).forEach { piece ->
-            if (piece.type == PieceType.King) return distanceTo(piece.position) <= 1
-            piece.getValidMoves(board).forEach { move ->
-                if (move.to == this) {
-                    return true
-                }
+            if (piece.type == PieceType.King){
+                if (distanceTo(piece.position) <= 1) return true
+            }
+            else {
+                val threatenedPositions = piece.getThreatenedPositions()
+                if (threatenedPositions.any { it == this }) return true
             }
         }
+//        return board.getAllPieces(color).any { piece ->
+//            piece.getThreatenedPositions().any { it == this }
+//                    || piece.type == PieceType.King && distanceTo(piece.position) <= 1
+//        }
         return false
     }
 

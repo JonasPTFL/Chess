@@ -7,38 +7,36 @@ class Pawn(
     initialPosition: Position,
     override var board: Board
 ) : Piece(PieceType.Pawn, color, initialPosition, board) {
-    override fun getValidMoves(board: Board): List<Move> {
+    override fun getPossibleMoves(): List<Move> {
         val validMoves = mutableListOf<Move>()
-        validMoves.addAll(
-            getValidMovesInDirection(
-                if (color == PieceColor.White) MoveDirection.Up else MoveDirection.Down,
-                type.defaultMoveCount,
-                MoveType.NoHit
-            )
-        )
-        validMoves.addAll(
-            getValidMovesInDirection(
-                if (color == PieceColor.White) MoveDirection.UpRight else MoveDirection.DownRight,
-                type.defaultMoveCount,
-                MoveType.OnlyHit
-            )
-        )
-        validMoves.addAll(
-            getValidMovesInDirection(
-                if (color == PieceColor.White) MoveDirection.UpLeft else MoveDirection.DownLeft,
-                type.defaultMoveCount,
-                MoveType.OnlyHit
-            )
-        )
+        validMoves.addValidMovesInDirection(MoveDirection.Up, MoveDirection.Down, MoveType.NoHit)
+        validMoves.addValidMovesInDirection(MoveDirection.UpRight, MoveDirection.DownRight, MoveType.OnlyHit)
+        validMoves.addValidMovesInDirection(MoveDirection.UpLeft, MoveDirection.DownLeft, MoveType.OnlyHit)
         if (!hasMoved) {
-            validMoves.addAll(
-                getValidMovesInDirection(
-                    if (color == PieceColor.White) MoveDirection.Up else MoveDirection.Down,
-                    type.defaultMoveCount + 1,
-                    MoveType.NoHit
-                )
-            )
+            validMoves.addValidMovesInDirection(MoveDirection.Up, MoveDirection.Down, MoveType.NoHit, type.defaultMoveCount + 1)
         }
         return validMoves
+    }
+
+    override fun getThreatenedPositions(): List<Position> {
+        val threatenedMoves = mutableListOf<Move>()
+        threatenedMoves.addValidMovesInDirection(MoveDirection.UpRight, MoveDirection.DownRight, MoveType.ThreatensKing)
+        threatenedMoves.addValidMovesInDirection(MoveDirection.UpLeft, MoveDirection.DownLeft, MoveType.ThreatensKing)
+        return threatenedMoves.map { it.to }
+    }
+
+    private fun MutableList<Move>.addValidMovesInDirection(
+        directionWhite: MoveDirection,
+        directionBlack: MoveDirection,
+        moveType: MoveType,
+        moveCount: Int = type.defaultMoveCount
+    ) {
+        addAll(
+            getValidMovesInDirection(
+                if (color == PieceColor.White) directionWhite else directionBlack,
+                moveCount,
+                moveType
+            )
+        )
     }
 }

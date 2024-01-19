@@ -15,10 +15,9 @@ class King(
     initialPosition: Position,
     override var board: Board
 ) : Piece(PieceType.King, color, initialPosition, board) {
-    override fun getValidMoves(board: Board): List<Move> {
-        return PieceType.King.moveDirections.filter {
-            val newPos = position.plus(it)
-            !newPos.isThreatened(color.opposite(), board)  && newPos.isOnBoard()&& !board.isOccupiedByColor(newPos, color)
-        }.map { Move(this, position, position.plus(it)) }
+    override fun getPossibleMoves(): List<Move> {
+        return PieceType.King.moveDirections.filterNot { moveDirection ->
+            position.plus(moveDirection).isThreatened(color.opposite(), board)
+        }.flatMap { getValidMovesInDirection(it) }
     }
 }

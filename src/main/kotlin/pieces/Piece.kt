@@ -14,20 +14,38 @@ open class Piece(
     open val board: Board,
 ) {
 
-    protected var hasMoved: Boolean = false
+    var hasMoved: Boolean = false
+
     var position = initialPosition
         protected set
 
-    open fun getValidMoves(board: Board): List<Move> {
+    fun getValidMoves(): List<Move> {
+        return if (board.isCheck(color)) getPossibleMoves().filter { it.blocksCheck(board, color) }
+        else getPossibleMoves()
+    }
+
+    open fun getPossibleMoves(): List<Move> {
         return type.moveDirections
             .map { getValidMovesInDirection(it, type.defaultMoveCount) }
             .flatten()
     }
 
+    /**
+     * Returns all positions, that are threatened by this piece.
+     * This will ignore the opponent king, if it is in the way, to check positions behind it.
+     * These positions are threatened for a king of the opposite color and can therefore not be moved to by the king.
+     */
+    open fun getThreatenedPositions(): List<Position> {
+        return type.moveDirections
+            .map { getValidMovesInDirection(it, type.defaultMoveCount, moveType = MoveType.ThreatensKing) }
+            .flatten()
+            .map { it.to }
+    }
+
     protected fun getValidMovesInDirection(
         moveDirection: MoveDirection,
         moveCount: Int = 1,
-        moveType: MoveType = MoveType.Normal,
+        moveType: MoveType = MoveType.Normal
     ): List<Move> {
         val validMoves = mutableListOf<Move>()
         var remainingMoves = moveCount
@@ -41,11 +59,24 @@ open class Piece(
             val pieceAtPosition = board.getPiece(newPosition)
             when {
                 // no piece at position, move normally
-                moveType.canMoveNormally() && pieceAtPosition == null -> validMoves.add(Move(this, position, newPosition))
+                moveType.canMoveNormally() && pieceAtPosition == null -> validMoves.add(
+                    Move(
+                        this,
+                        position,
+                        newPosition,
+                        moveType
+                    )
+                )
                 // opponent piece at position, move by hitting
                 moveType.canHit() && pieceAtPosition.isOppositeColor(this) -> {
-                    validMoves.add(Move(this, position, newPosition))
+                    validMoves.add(Move(this, position, newPosition, moveType))
                     break
+                }
+
+                moveType == MoveType.ThreatensKing -> {
+                    validMoves.add(Move(this, position, newPosition, moveType))
+                    // proceed in direction and ignore king, to check if position behind the king is threatened too
+                    if (pieceAtPosition?.type != PieceType.King) break
                 }
                 // own piece at position, cancel move
                 pieceAtPosition != null -> break
@@ -62,7 +93,6 @@ open class Piece(
             hasMoved = true
         }
     }
-
 
     companion object {
         fun Piece?.isOppositeColor(other: Piece?): Boolean {

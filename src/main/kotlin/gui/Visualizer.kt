@@ -1,7 +1,6 @@
 package gui
 
 import board.Board
-import board.Move
 import board.Position
 import pieces.Piece
 import pieces.PieceColor
@@ -74,7 +73,7 @@ class Visualizer(private val board: Board) : JFrame() {
                 // rotate board
                 g2d.rotate(Math.toRadians(if (boardFlipped) 180.0 else 0.0), width.toDouble() / 2, height.toDouble() / 2)
 
-                val validMovePositions = selectedPiece?.getValidMoves(board)?.map { it.to } ?: emptyList()
+                val validMovePositions = selectedPiece?.getValidMoves()?.map { it.to } ?: emptyList()
                 for (x in 0..7) {
                     for (y in 0..7) {
                         val isWhiteSquare = (x + y) % 2 != 0
@@ -94,7 +93,7 @@ class Visualizer(private val board: Board) : JFrame() {
             }
         }
         boardPanel.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(e: MouseEvent) {
+            override fun mousePressed(e: MouseEvent) {
                 val clickXPos = if (boardFlipped) componentWidth - e.x else e.x
                 val clickYPos = if (boardFlipped) componentHeight - e.y else e.y
                 val clickedPosition = Position(clickXPos / squareSize, clickYPos / squareSize)
@@ -106,10 +105,8 @@ class Visualizer(private val board: Board) : JFrame() {
                 } else {
                     // move selected piece, if clicked position is valid
                     selectedPiece?.let {
-                        val clickedMove = Move(it, it.position, clickedPosition)
-                        if (board.isValidMove(clickedMove)) {
-                            clickedMove.execute(board)
-                        }
+                        val clickedMove = it.getValidMoves().find { move -> move.to == clickedPosition }
+                        clickedMove?.execute(board)
                         // deselect piece, if clicked position is not valid or move was executed
                         selectedPiece = null
                     }

@@ -5,6 +5,7 @@ import javax.swing.SwingUtilities
 fun main() {
     println("Chess")
     val board = Board()
+    board.initializeBoard()
 
     var visualizer: Visualizer? = null
     SwingUtilities.invokeLater {
