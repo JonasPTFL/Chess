@@ -5,10 +5,7 @@ import board.Position
 import pieces.Piece
 import pieces.PieceColor
 import pieces.PieceType
-import java.awt.Color
-import java.awt.Graphics
-import java.awt.Graphics2D
-import java.awt.Image
+import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.geom.AffineTransform
@@ -44,6 +41,7 @@ class Visualizer(private val board: Board) : JFrame() {
     private val boardPanel: JPanel
     private var selectedPiece: Piece? = null
     private var boardFlipped = true
+    private var gameEnd = false
 
     init {
         title = "Chess"
@@ -60,7 +58,7 @@ class Visualizer(private val board: Board) : JFrame() {
             throw RuntimeException("Could not load image")
         }
         iconImage = chessPiecesTexture
-            .getSubimage(0,0,chessPiecesTexture.width / texturePieceCount, chessPiecesTexture.height / 2)
+            .getSubimage(0, 0, chessPiecesTexture.width / texturePieceCount, chessPiecesTexture.height / 2)
             .getScaledInstance(32, 32, Image.SCALE_SMOOTH)
 
 
@@ -68,10 +66,15 @@ class Visualizer(private val board: Board) : JFrame() {
         boardPanel = object : JPanel() {
             override fun paintComponent(g: Graphics) {
                 super.paintComponent(g)
+
                 val g2d = g as Graphics2D
                 val old = g2d.transform
                 // rotate board
-                g2d.rotate(Math.toRadians(if (boardFlipped) 180.0 else 0.0), width.toDouble() / 2, height.toDouble() / 2)
+                g2d.rotate(
+                    Math.toRadians(if (boardFlipped) 180.0 else 0.0),
+                    width.toDouble() / 2,
+                    height.toDouble() / 2
+                )
 
                 val validMovePositions = selectedPiece?.getValidMoves()?.map { it.to } ?: emptyList()
                 for (x in 0..7) {
@@ -90,10 +93,13 @@ class Visualizer(private val board: Board) : JFrame() {
                 }
 
                 g2d.transform = old
+
+                drawGameStatus(g)
             }
         }
         boardPanel.addMouseListener(object : MouseAdapter() {
             override fun mousePressed(e: MouseEvent) {
+                if (gameEnd) return
                 val clickXPos = if (boardFlipped) componentWidth - e.x else e.x
                 val clickYPos = if (boardFlipped) componentHeight - e.y else e.y
                 val clickedPosition = Position(clickXPos / squareSize, clickYPos / squareSize)
@@ -167,6 +173,28 @@ class Visualizer(private val board: Board) : JFrame() {
             moveIndicatorSize,
             moveIndicatorSize
         )
+    }
+
+    private fun drawGameStatus(g: Graphics) {
+        val text = when {
+            board.isCheckMate(PieceColor.White) -> "Checkmate! Black wins!"
+            board.isCheckMate(PieceColor.Black) -> "Checkmate! White wins!"
+            board.isStaleMate(PieceColor.White) || board.isStaleMate(PieceColor.Black) -> "Stalemate! Draw!"
+            else -> return
+        }
+        gameEnd = true
+
+        // draw dark half transparent background
+        g.color = Color(0, 0, 0, 128)
+        g.fillRect(0, 0, componentWidth, componentHeight)
+
+        g.font = Font("Calibri", Font.BOLD, 40)
+        g.color = Color.WHITE
+        // draw string centered
+        val fontMetrics = g.getFontMetrics(g.font)
+        val textWidth = fontMetrics.stringWidth(text)
+        val textHeight = fontMetrics.height
+        g.drawString(text, (componentWidth - textWidth) / 2, (componentHeight - textHeight) / 2)
     }
 
     fun update() {
