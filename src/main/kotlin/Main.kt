@@ -4,30 +4,47 @@ import game.GameState
 import game.GameStateListener
 import gui.Visualizer
 import pieces.PieceColor
+import java.lang.IllegalStateException
 import javax.swing.SwingUtilities
 import kotlin.concurrent.thread
 
 fun main() {
     println("Chess")
 
-    thread {
-        playGames(1, 10, 1000)
+    playGames(n = 4, delayBetweenMoves = 10, delayBetweenGames = 1000, concurrent = false)
+}
+
+fun playGames(
+    n: Int = 1,
+    delayBetweenMoves: Long = 100,
+    delayBetweenGames: Long = 1000,
+    concurrent: Boolean = false,
+    asColor: Set<PieceColor> = emptySet()
+) {
+    if (n < 0) {
+        if (concurrent) throw IllegalStateException("concurrent games not allowed for infinite games")
+        playGame(delayBetweenMoves, delayBetweenGames, asColor) {
+            playGames(n, delayBetweenMoves, delayBetweenGames, false, asColor)
+        }
+    } else if (n > 0) {
+        if (concurrent) {
+            repeat(n) {
+                playGame(delayBetweenMoves, delayBetweenGames, asColor)
+            }
+        } else {
+            playGame(delayBetweenMoves, delayBetweenGames, asColor) {
+                playGames(n - 1, delayBetweenMoves, delayBetweenGames, false, asColor)
+            }
+        }
     }
 }
 
-fun playGames(n: Int = 1, delayBetweenMoves: Long = 100, delayBetweenGames: Long = 1000, asColor: Set<PieceColor> = emptySet()) {
-    if (n <= 0) {
-        while (true){
-            playGame(delayBetweenMoves, delayBetweenGames, asColor)
-        }
-    } else {
-        repeat(n) {
-            playGame(delayBetweenMoves, delayBetweenGames, asColor)
-        }
-    }
-}
-
-fun playGame(delayBetweenMoves: Long = 0, delayBeforeCloseVisualizer: Long = 1000, asColor: Set<PieceColor> = emptySet()){
+fun playGame(
+    delayBetweenMoves: Long = 0,
+    delayBeforeCloseVisualizer: Long = 1000,
+    asColor: Set<PieceColor> = emptySet(),
+    onGameFinished: (() -> Unit)? = null
+) {
     val game = Game(randomMoveDelay = delayBetweenMoves)
     var visualizer: Visualizer? = null
 
@@ -40,6 +57,7 @@ fun playGame(delayBetweenMoves: Long = 0, delayBeforeCloseVisualizer: Long = 100
                     SwingUtilities.invokeLater {
                         visualizer?.close()
                     }
+                    onGameFinished?.invoke()
                 }
             }
         }
