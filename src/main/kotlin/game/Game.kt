@@ -67,7 +67,7 @@ class Game(
         }
     }
 
-    private fun doRandomValidMove() {
+    fun doRandomValidMove() {
         val pieces = board.getAllPieces(board.turn)
         val validMoves = pieces.flatMap { it.getValidMoves() }
         val randomMove = validMoves.random()
