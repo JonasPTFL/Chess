@@ -9,11 +9,11 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     private var pieceHasMoved = piece.hasMoved
 
     fun execute(game: Game) {
-        internalExecute(game.board, true)
+        internalExecute(game.board)
         game.onMoveExecuted(this)
     }
 
-    private fun internalExecute(board: Board, isUserExecuted: Boolean){
+    private fun internalExecute(board: Board){
         capturedPiece = board.getPiece(to)
         pieceHasMoved = piece.hasMoved
         when {
@@ -36,16 +36,21 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     }
 
     fun revert(board: Board) {
+        if (moveType == MoveType.Promotion) {
+            board.setPiece(to, piece)
+        }
         board.movePiece(to, from)
         piece.move(from)
-        board.setPiece(to, capturedPiece)
+        val capturedPiecePosition = if (moveType == MoveType.EnPassant) getEnpassantCapturePosition() else to
+        // revert captured piece, use en passant position if move was en passant
+        board.setPiece(capturedPiecePosition, capturedPiece)
         piece.hasMoved = pieceHasMoved
         board.changeTurn()
         board.removeLastMove()
     }
 
     fun blocksCheck(board: Board, color: PieceColor): Boolean {
-        internalExecute(board, false)
+        internalExecute(board)
         val blocksCheck = !board.isCheck(color)
         revert(board)
         return blocksCheck
@@ -61,9 +66,14 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     }
 
     private fun applyEnPassant(board: Board) {
-        val enPassantPosition = Position(to.x, from.y)
+        val enPassantPosition = getEnpassantCapturePosition()
         board.movePiece(from, to)
         piece.move(to)
+        capturedPiece = board.getPiece(enPassantPosition)
         board.setPiece(enPassantPosition, null)
+    }
+
+    private fun getEnpassantCapturePosition(): Position {
+        return Position(to.x, from.y)
     }
 }
