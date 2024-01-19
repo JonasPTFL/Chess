@@ -20,7 +20,7 @@ open class Piece(
         protected set
 
     fun getValidMoves(): List<Move> {
-        return if (board.isCheck(color)) getPossibleMoves().filter { it.blocksCheck(board, color) }
+        return if (board.isCheck(color) && type != PieceType.King) getPossibleMoves().filter { it.blocksCheck(board, color) }
         else getPossibleMoves()
     }
 

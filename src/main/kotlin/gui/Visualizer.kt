@@ -44,7 +44,7 @@ class Visualizer(private val board: Board) : JFrame() {
 
     private val boardPanel: JPanel
     private var selectedPiece: Piece? = null
-    private var boardFlipped = false
+    private var boardFlipped = true
     private var gameEnd = false
 
     private var promotionMove: Move? = null
@@ -258,12 +258,12 @@ class Visualizer(private val board: Board) : JFrame() {
             g.color = if (isMouseHoveringOverPromotionPiece(index)) colorPromotionCircleHighlightedBackground
             else colorPromotionCircleBackground
 
-            val circleX =
+            val xPos =
                 if (boardFlipped) componentWidth - (promotionXPosition+1) * squareSize else promotionXPosition * squareSize
-            val circleY = index * squareSize
-            g.fillOval(circleX, circleY, squareSize, squareSize)
+            val yPos = index * squareSize
+            g.fillOval(xPos, yPos, squareSize, squareSize)
 
-            g.drawImage(img, x * squareSize, y * squareSize, null)
+            g.drawImage(img, xPos, yPos, null)
         }
     }
 
@@ -278,7 +278,6 @@ class Visualizer(private val board: Board) : JFrame() {
                 if (boardFlipped) componentWidth - (promotionXPosition+1) * squareSize else promotionXPosition * squareSize
             val xPosEnd =
                 if (boardFlipped) componentWidth - (promotionXPosition) * squareSize else (promotionXPosition + 1) * squareSize
-            println("" + xPosStart + " " + xPosEnd + " " + it.x + " " + it.y + " " + index * squareSize + " " + (index + 1) * squareSize)
             return it.x in xPosStart until xPosEnd
                     && it.y in index * squareSize until (index + 1) * squareSize
         } ?: return false
