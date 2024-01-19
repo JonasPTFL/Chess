@@ -1,6 +1,8 @@
 package gui
 
 import board.Board
+import board.Move
+import board.MoveType
 import board.Position
 import pieces.Piece
 import pieces.PieceColor
@@ -37,11 +39,24 @@ class Visualizer(private val board: Board) : JFrame() {
     private val colorBlack = Color.decode("#6d523b")
     private val colorSelectedBlackSquare = Color.decode("#525332")
     private val colorSelectedWhiteSquare = Color.decode("#6b7455")
+    private val colorPromotionCircleBackground = Color.decode("#b0b0b0")
+    private val colorPromotionCircleHighlightedBackground = Color.decode("#cb6a31")
 
     private val boardPanel: JPanel
     private var selectedPiece: Piece? = null
-    private var boardFlipped = true
+    private var boardFlipped = false
     private var gameEnd = false
+
+    private var promotionMove: Move? = null
+    private var selectedPromotionPiece: PieceType? = null
+    private var promotionXPosition = 0
+    val promotionPieceTypes = arrayOf(
+        PieceType.Queen,
+        PieceType.Knight,
+        PieceType.Rook,
+        PieceType.Bishop
+    )
+    private var lastMousePosition: Point? = null
 
     init {
         title = "Chess"
@@ -61,6 +76,10 @@ class Visualizer(private val board: Board) : JFrame() {
             .getSubimage(0, 0, chessPiecesTexture.width / texturePieceCount, chessPiecesTexture.height / 2)
             .getScaledInstance(32, 32, Image.SCALE_SMOOTH)
 
+        // register on promotion piece required callback
+        board.setOnPromotionRequest { xPosition ->
+            selectedPromotionPiece
+        }
 
         // draw board
         boardPanel = object : JPanel() {
@@ -94,12 +113,25 @@ class Visualizer(private val board: Board) : JFrame() {
 
                 g2d.transform = old
 
+                if (promotionMove != null) drawPromotionSelection(g)
+
                 drawGameStatus(g)
             }
         }
-        boardPanel.addMouseListener(object : MouseAdapter() {
+        val mouseListener = object : MouseAdapter() {
             override fun mousePressed(e: MouseEvent) {
                 if (gameEnd) return
+                if (promotionMove != null) {
+                    promotionPieceTypes.forEachIndexed { index, pieceType ->
+                        if (isMouseHoveringOverPromotionPiece(index)) {
+                            selectedPromotionPiece = pieceType
+                            promotionMove?.execute(board)
+                            promotionMove = null
+                            update()
+                            return
+                        }
+                    }
+                }
                 val clickXPos = if (boardFlipped) componentWidth - e.x else e.x
                 val clickYPos = if (boardFlipped) componentHeight - e.y else e.y
                 val clickedPosition = Position(clickXPos / squareSize, clickYPos / squareSize)
@@ -110,14 +142,29 @@ class Visualizer(private val board: Board) : JFrame() {
                     // change selected piece, if clicked piece is of same color
                     clickedPiece
                 } else {
-                    // move selected piece, if clicked position is valid
-                    clickedMove?.execute(board)
+                    if (clickedMove?.moveType == MoveType.Promotion) {
+                        promotionMove = clickedMove
+                        promotionXPosition = clickedMove.to.x
+                        selectedPromotionPiece = null
+                    } else {
+                        // move selected piece, if clicked position is valid
+                        clickedMove?.execute(board)
+                    }
                     // deselect piece, if clicked position is not valid or move was executed
                     null
                 }
                 update()
             }
-        })
+
+            override fun mouseMoved(e: MouseEvent?) {
+                if (promotionMove != null) {
+                    lastMousePosition = e?.point
+                    update()
+                }
+            }
+        }
+        boardPanel.addMouseListener(mouseListener)
+        boardPanel.addMouseMotionListener(mouseListener)
 
         add(boardPanel)
     }
@@ -182,9 +229,7 @@ class Visualizer(private val board: Board) : JFrame() {
         }
         gameEnd = true
 
-        // draw dark half transparent background
-        g.color = Color(0, 0, 0, 128)
-        g.fillRect(0, 0, componentWidth, componentHeight)
+        drawOverlayBackground(g)
 
         g.font = Font("Calibri", Font.BOLD, 40)
         g.color = Color.WHITE
@@ -193,6 +238,50 @@ class Visualizer(private val board: Board) : JFrame() {
         val textWidth = fontMetrics.stringWidth(text)
         val textHeight = fontMetrics.height
         g.drawString(text, (componentWidth - textWidth) / 2, (componentHeight - textHeight) / 2)
+    }
+
+    private fun drawPromotionSelection(g: Graphics2D) {
+        drawOverlayBackground(g)
+        promotionPieceTypes.forEachIndexed { index, pieceType ->
+            val img = chessPiecesTexture.getSubimage(
+                texturePieceOrder.indexOf(pieceType) * chessPiecesTexture.width / texturePieceCount,
+                if (board.turn == PieceColor.White) 0 else chessPiecesTexture.height / 2,
+                chessPiecesTexture.width / texturePieceCount,
+                chessPiecesTexture.height / 2
+            ).getScaledInstance(
+                squareSize,
+                squareSize,
+                Image.SCALE_SMOOTH
+            )
+
+            // draw circle background for promotion piece, highlight on mouse hover
+            g.color = if (isMouseHoveringOverPromotionPiece(index)) colorPromotionCircleHighlightedBackground
+            else colorPromotionCircleBackground
+
+            val circleX =
+                if (boardFlipped) componentWidth - (promotionXPosition+1) * squareSize else promotionXPosition * squareSize
+            val circleY = index * squareSize
+            g.fillOval(circleX, circleY, squareSize, squareSize)
+
+            g.drawImage(img, x * squareSize, y * squareSize, null)
+        }
+    }
+
+    private fun drawOverlayBackground(g: Graphics) {
+        g.color = Color(0, 0, 0, 128)
+        g.fillRect(0, 0, componentWidth, componentHeight)
+    }
+
+    private fun isMouseHoveringOverPromotionPiece(index: Int): Boolean {
+        lastMousePosition?.let {
+            val xPosStart =
+                if (boardFlipped) componentWidth - (promotionXPosition+1) * squareSize else promotionXPosition * squareSize
+            val xPosEnd =
+                if (boardFlipped) componentWidth - (promotionXPosition) * squareSize else (promotionXPosition + 1) * squareSize
+            println("" + xPosStart + " " + xPosEnd + " " + it.x + " " + it.y + " " + index * squareSize + " " + (index + 1) * squareSize)
+            return it.x in xPosStart until xPosEnd
+                    && it.y in index * squareSize until (index + 1) * squareSize
+        } ?: return false
     }
 
     fun update() {
