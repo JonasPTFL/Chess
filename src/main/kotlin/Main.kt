@@ -1,16 +1,28 @@
 import game.Game
+import game.GameState
 import gui.Visualizer
 import javax.swing.SwingUtilities
+import kotlin.concurrent.thread
 
 fun main() {
     println("Chess")
 
-    val game = Game()
+    thread {
+        while (true) {
+            val game = Game()
 
-    SwingUtilities.invokeLater {
-        val visualizer = Visualizer(game)
-        visualizer.isVisible = true
+            var visualizer: Visualizer? = null
+            SwingUtilities.invokeLater {
+                visualizer = Visualizer(game, actionAllowedForColor = emptySet())
+                visualizer?.isVisible = true
 
-        game.start()
+                game.start()
+            }
+            while (game.state == GameState.Running) { }
+            Thread.sleep(1000)
+            SwingUtilities.invokeLater {
+                visualizer?.close()
+            }
+        }
     }
 }

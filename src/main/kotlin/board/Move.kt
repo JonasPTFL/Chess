@@ -76,4 +76,8 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     private fun getEnpassantCapturePosition(): Position {
         return Position(to.x, from.y)
     }
+
+    fun hasCapturedPiece(): Boolean {
+        return capturedPiece != null
+    }
 }

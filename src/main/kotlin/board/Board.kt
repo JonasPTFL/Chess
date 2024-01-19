@@ -115,7 +115,39 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     }
 
     fun isDraw(): Boolean {
-        return getAllPieces().size == 2
+        return isStaleMate(turn) || isStaleMate(turn.opposite()) || isInSufficientMaterial() || isThreefoldRepetition() || isFiftyMoveRule()
+    }
+
+    fun isThreefoldRepetition(): Boolean {
+        return moves.groupBy { it }.any { it.value.size >= 3 }
+    }
+
+    fun isFiftyMoveRule(): Boolean {
+        return moves.size >= 100 && moves.takeLast(100).all { !it.hasCapturedPiece() && it.piece.type != PieceType.Pawn }
+    }
+
+    fun isInSufficientMaterial(): Boolean {
+        val whitePiecesWithoutKing = getAllPieces(PieceColor.White).filter { it.type != PieceType.King }
+        val blackPiecesWithoutKing = getAllPieces(PieceColor.Black).filter { it.type != PieceType.King }
+        return when {
+            // only kings left
+            whitePiecesWithoutKing.isEmpty() && blackPiecesWithoutKing.isEmpty() -> true
+            // white: no material, black: bishop or knight
+            whitePiecesWithoutKing.isEmpty() && blackPiecesWithoutKing.size == 1 -> {
+                blackPiecesWithoutKing[0].type == PieceType.Knight || blackPiecesWithoutKing[0].type == PieceType.Bishop
+            }
+            // black: no material, white: bishop or knight
+            blackPiecesWithoutKing.isEmpty() && whitePiecesWithoutKing.size == 1 -> {
+                whitePiecesWithoutKing[0].type == PieceType.Knight || whitePiecesWithoutKing[0].type == PieceType.Bishop
+            }
+            // only bishops of same color left
+            whitePiecesWithoutKing.size == 1 && blackPiecesWithoutKing.size == 1 -> {
+                whitePiecesWithoutKing[0].type == PieceType.Bishop && blackPiecesWithoutKing[0].type == PieceType.Bishop
+                        && whitePiecesWithoutKing[0].position.getColor() == blackPiecesWithoutKing[0].position.getColor()
+            }
+
+            else -> false
+        }
     }
 
     fun getLastMove(): Move? {

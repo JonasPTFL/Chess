@@ -53,4 +53,8 @@ data class Position(val x: Int, val y: Int) {
         } while (position.plus(moveDirection) != to)
         return betweenPositions
     }
+
+    fun getColor(): PieceColor {
+        return if ((x + y) % 2 == 0) PieceColor.White else PieceColor.Black
+    }
 }

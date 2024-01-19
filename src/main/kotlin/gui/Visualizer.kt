@@ -51,7 +51,6 @@ class Visualizer(
     private val boardPanel: JPanel
     private var selectedPiece: Piece? = null
     private var boardFlipped = true
-    private var gameEnd = false
     private var allowedToMove = false
 
     private var promotionMove: Move? = null
@@ -114,15 +113,14 @@ class Visualizer(
                 val validMovePositions = selectedPiece?.getValidMoves()?.map { it.to } ?: emptyList()
                 for (x in 0..7) {
                     for (y in 0..7) {
-                        val isWhiteSquare = (x + y) % 2 != 0
-                        drawSquareBackground(g, x, y, isWhiteSquare)
+                        drawSquareBackground(g, x, y)
 
                         board.getPiece(Position(x, y))?.let {
                             drawPieceTexture(g, x, y, it)
                         }
 
                         if (validMovePositions.contains(Position(x, y))) {
-                            drawValidMoveMarker(g, x, y, isWhiteSquare)
+                            drawValidMoveMarker(g, x, y)
                         }
                     }
                 }
@@ -131,19 +129,18 @@ class Visualizer(
 
                 if (promotionMove != null) drawPromotionSelection(g)
 
-                drawGameStatus(g)
+                drawGameState(g)
             }
         }
         val mouseListener = object : MouseAdapter() {
             override fun mousePressed(e: MouseEvent) {
-                if (gameEnd || !allowedToMove) return
+                if (game.isRunning() || !allowedToMove) return
                 if (promotionMove != null) {
                     promotionPieceTypes.forEachIndexed { index, pieceType ->
                         if (isMouseHoveringOverPromotionPiece(index)) {
                             selectedPromotionPiece = pieceType
                             promotionMove?.execute(game)
                             promotionMove = null
-                            update()
                             return
                         }
                     }
@@ -169,7 +166,6 @@ class Visualizer(
                     // deselect piece, if clicked position is not valid or move was executed
                     null
                 }
-                update()
             }
 
             override fun mouseMoved(e: MouseEvent?) {
@@ -185,8 +181,9 @@ class Visualizer(
         add(boardPanel)
     }
 
-    private fun drawSquareBackground(g: Graphics, x: Int, y: Int, isWhiteSquare: Boolean) {
+    private fun drawSquareBackground(g: Graphics, x: Int, y: Int) {
         val isSelected = selectedPiece?.position == Position(x, y)
+        val isWhiteSquare = Position(x, y).getColor() == PieceColor.White
 
         // determine background color of square
         g.color = when {
@@ -225,8 +222,8 @@ class Visualizer(
         g.drawImage(scaledImg, x * squareSize, y * squareSize, null)
     }
 
-    private fun drawValidMoveMarker(g: Graphics, x: Int, y: Int, isWhiteSquare: Boolean) {
-        g.color = if (isWhiteSquare) colorSelectedWhiteSquare else colorSelectedBlackSquare
+    private fun drawValidMoveMarker(g: Graphics, x: Int, y: Int) {
+        g.color = if (Position(x, y).getColor() == PieceColor.White) colorSelectedWhiteSquare else colorSelectedBlackSquare
         val centerOffset = (squareSize - moveIndicatorSize) / 2
         g.fillOval(
             x * squareSize + centerOffset,
@@ -236,14 +233,15 @@ class Visualizer(
         )
     }
 
-    private fun drawGameStatus(g: Graphics) {
-        val text = when {
-            board.isCheckMate(PieceColor.White) -> "Checkmate! Black wins!"
-            board.isCheckMate(PieceColor.Black) -> "Checkmate! White wins!"
-            board.isStaleMate(PieceColor.White) || board.isStaleMate(PieceColor.Black) -> "Stalemate! Draw!"
+    private fun drawGameState(g: Graphics) {
+        val text = when (game.state) {
+            GameState.Checkmate -> "Checkmate! ${board.turn.opposite()} wins!"
+            GameState.Stalemate -> "Stalemate! Draw!"
+            GameState.FiftyMoveRuleDraw -> "Draw by fifty move rule!"
+            GameState.ThreefoldRepetitionDraw -> "Draw by threefold repetition!"
+            GameState.InSufficientMaterialDraw -> "Draw by insufficient material!"
             else -> return
         }
-        gameEnd = true
 
         drawOverlayBackground(g)
 
@@ -303,11 +301,18 @@ class Visualizer(
         boardPanel.repaint()
     }
 
+    fun close() {
+        dispose()
+    }
+
     override fun onGameStateChanged(gameState: GameState) {
         update()
     }
 
     override fun onMoveExecuted(move: Move) {
-        allowedToMove = false
+        if (game.isRunning()) {
+            allowedToMove = false
+            update()
+        }
     }
 }

@@ -11,5 +11,7 @@ enum class GameState {
     Running,
     Checkmate,
     Stalemate,
-    Draw
+    FiftyMoveRuleDraw,
+    ThreefoldRepetitionDraw,
+    InSufficientMaterialDraw
 }
