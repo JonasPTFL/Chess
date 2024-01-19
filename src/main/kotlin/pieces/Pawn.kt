@@ -1,6 +1,7 @@
 package pieces
 
 import board.*
+import kotlin.math.abs
 
 class Pawn(
     override val color: PieceColor,
@@ -12,16 +13,41 @@ class Pawn(
         validMoves.addValidMovesInDirection(MoveDirection.Up, MoveDirection.Down, MoveType.NoHit)
         validMoves.addValidMovesInDirection(MoveDirection.UpRight, MoveDirection.DownRight, MoveType.OnlyHit)
         validMoves.addValidMovesInDirection(MoveDirection.UpLeft, MoveDirection.DownLeft, MoveType.OnlyHit)
-        validMoves.addValidMovesInDirection(MoveDirection.UpRight, MoveDirection.DownRight, MoveType.EnPassant)
-        validMoves.addValidMovesInDirection(MoveDirection.UpLeft, MoveDirection.DownLeft, MoveType.EnPassant)
-        if (isOnStartingPosition()) {
-            validMoves.addValidMovesInDirection(MoveDirection.Up, MoveDirection.Down, MoveType.NoHit, type.defaultMoveCount + 1)
+
+        // check for en passant
+        val lastMove = board.getLastMove()
+        lastMove?.piece?.let { lastMovePiece ->
+            if (lastMovePiece.type == PieceType.Pawn && lastMovePiece.isOppositeColor(this)) {
+                val lastMoveFrom = lastMove.from
+                val lastMoveTo = lastMove.to
+                val pawnMoveDirection = if (color == PieceColor.White) MoveDirection.Up else MoveDirection.Down
+                // check if last move was a double move and if it was next to this pawn
+                if (lastMoveFrom.distanceTo(lastMoveTo) == 2
+                    && lastMoveFrom.x == lastMoveTo.x
+                    && lastMoveTo.y == position.y
+                    && abs(lastMoveTo.x - position.x) == 1
+                    ) {
+                    validMoves.add(
+                        Move(
+                            this,
+                            position,
+                            Position(lastMoveTo.x, position.y + pawnMoveDirection.yDirection),
+                            MoveType.EnPassant
+                        )
+                    )
+                }
+            }
+        }
+
+        if (!hasMoved) {
+            validMoves.addValidMovesInDirection(
+                MoveDirection.Up,
+                MoveDirection.Down,
+                MoveType.NoHit,
+                type.defaultMoveCount + 1
+            )
         }
         return validMoves
-    }
-
-    private fun isOnStartingPosition(): Boolean {
-        return (color == PieceColor.White && position.y == 1) || (color == PieceColor.Black && position.y == 6)
     }
 
     override fun getThreatenedPositions(): List<Position> {

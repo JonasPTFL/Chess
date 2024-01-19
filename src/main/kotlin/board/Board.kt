@@ -26,6 +26,8 @@ class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
     var turn = PieceColor.White
         private set
 
+    private val moves = mutableListOf<Move>()
+
     /**
      * Returns the piece at a given position.
      */
@@ -115,5 +117,17 @@ class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
 
     fun isStaleMate(color: PieceColor): Boolean {
         return !isCheck(color) && getAllPieces(color).all { it.getValidMoves().isEmpty() }
+    }
+
+    fun getLastMove(): Move? {
+        return moves.lastOrNull()
+    }
+
+    fun addMove(move: Move) {
+        moves.add(move)
+    }
+
+    fun removeLastMove() {
+        moves.removeLast()
     }
 }

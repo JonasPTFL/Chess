@@ -10,14 +10,16 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     fun execute(board: Board) {
         capturedPiece = board.getPiece(to)
         pieceHasMoved = piece.hasMoved
-        if (moveType.isCastling()) {
-            applyCastling(board)
-        }
-        else {
-            board.movePiece(from, to)
-            piece.move(to)
+        when {
+            moveType.isCastling() -> applyCastling(board)
+            moveType == MoveType.EnPassant -> applyEnPassant(board)
+            else -> {
+                board.movePiece(from, to)
+                piece.move(to)
+            }
         }
         board.changeTurn()
+        board.addMove(this)
     }
 
     fun revert(board: Board) {
@@ -26,6 +28,7 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
         board.setPiece(to, capturedPiece)
         piece.hasMoved = pieceHasMoved
         board.changeTurn()
+        board.removeLastMove()
     }
 
     fun blocksCheck(board: Board, color: PieceColor): Boolean {
@@ -42,5 +45,12 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
         board.movePiece(to, rookPosition)
         piece.move(kingPosition)
         board.getPiece(rookPosition)?.move(rookPosition)
+    }
+
+    private fun applyEnPassant(board: Board) {
+        val enPassantPosition = Position(to.x, from.y)
+        board.movePiece(from, to)
+        piece.move(to)
+        board.setPiece(enPassantPosition, null)
     }
 }
