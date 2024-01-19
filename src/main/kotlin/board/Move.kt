@@ -13,6 +13,13 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
         when {
             moveType.isCastling() -> applyCastling(board)
             moveType == MoveType.EnPassant -> applyEnPassant(board)
+            moveType == MoveType.Promotion -> {
+                board.movePiece(from, to)
+                piece.move(to)
+                val promotionPiece = board.getPromotionPiece(to)
+                promotionPiece.move(to)
+                board.setPiece(to, promotionPiece)
+            }
             else -> {
                 board.movePiece(from, to)
                 piece.move(to)

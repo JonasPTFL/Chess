@@ -10,7 +10,8 @@ import pieces.PieceType
  * @author Jonas Pollpeter
  */
 
-class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
+class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType?)? = null) {
+    private val defaultPromotionPiece = PieceType.Queen
 
     private val edgePieces = listOf(
         PieceType.Rook,
@@ -26,6 +27,7 @@ class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
     var turn = PieceColor.White
         private set
 
+    val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }
     private val moves = mutableListOf<Move>()
 
     /**
@@ -72,7 +74,7 @@ class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
             val positionWhite = Position(i, 0)
             val positionBlack = Position(i, 7)
             setPiece(positionWhite, PieceFactory.createPiece(edgePieces[i], PieceColor.White, positionWhite, this))
-            setPiece(positionBlack, PieceFactory.createPiece(edgePieces[i], PieceColor.Black, positionBlack, this))
+//            setPiece(positionBlack, PieceFactory.createPiece(edgePieces[i], PieceColor.Black, positionBlack, this))
         }
 
         // pawns
@@ -80,12 +82,16 @@ class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
             val positionWhite = Position(i, 1)
             val positionBlack = Position(i, 6)
             setPiece(positionWhite, PieceFactory.createPiece(PieceType.Pawn, PieceColor.White, positionWhite, this))
-            setPiece(positionBlack, PieceFactory.createPiece(PieceType.Pawn, PieceColor.Black, positionBlack, this))
+//            setPiece(positionBlack, PieceFactory.createPiece(PieceType.Pawn, PieceColor.Black, positionBlack, this))
         }
+        setPiece(Position(7,7), PieceFactory.createPiece(PieceType.King, PieceColor.Black, Position(7,7), this))
     }
 
     fun changeTurn() {
         turn = if (turn == PieceColor.White) PieceColor.Black else PieceColor.White
+        if (turn == PieceColor.Black) {
+            doRandomValidMove()
+        }
     }
 
     fun doRandomValidMove() {
@@ -129,5 +135,16 @@ class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
 
     fun removeLastMove() {
         moves.removeLast()
+    }
+
+    fun getPromotionPiece(position: Position): Piece {
+        val requestedPromotionPiece = onPromotionPieceRequired?.invoke(position.x)
+            ?.takeIf { PieceType.isValidPromotionPiece(it) }
+            ?: defaultPromotionPiece
+        return PieceFactory.createPiece(requestedPromotionPiece, turn, position, this)
+    }
+
+    fun setOnPromotionRequest(onPromotionPieceRequired: ((xPosition: Int) -> PieceType?)?) {
+        this.onPromotionPieceRequired = onPromotionPieceRequired
     }
 }

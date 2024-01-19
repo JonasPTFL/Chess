@@ -47,7 +47,15 @@ class Pawn(
                 type.defaultMoveCount + 1
             )
         }
-        return validMoves
+
+        // check for promotion and map to promotion move
+        return validMoves.map {
+            if (it.to.y == 0 || it.to.y == 7) {
+                Move(it.piece, it.from, it.to, MoveType.Promotion)
+            } else {
+                it
+            }
+        }
     }
 
     override fun getThreatenedPositions(): List<Position> {

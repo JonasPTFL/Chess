@@ -57,5 +57,9 @@ enum class PieceType(
         "♙",
         1,
         setOf(MoveDirection.Up, MoveDirection.UpRight, MoveDirection.UpLeft)
-    )
+    );
+
+    companion object {
+        fun isValidPromotionPiece(pieceType: PieceType) = pieceType == Queen || pieceType == Rook || pieceType == Bishop || pieceType == Knight
+    }
 }

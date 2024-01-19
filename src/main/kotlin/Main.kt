@@ -4,13 +4,13 @@ import javax.swing.SwingUtilities
 
 fun main() {
     println("Chess")
+
     val board = Board()
     board.initializeBoard()
 
-    var visualizer: Visualizer? = null
     SwingUtilities.invokeLater {
-        visualizer = Visualizer(board)
-        visualizer?.isVisible = true
+        val visualizer = Visualizer(board)
+        visualizer.isVisible = true
     }
 
 //    thread {
