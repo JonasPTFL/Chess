@@ -40,4 +40,17 @@ data class Position(val x: Int, val y: Int) {
     fun plus(direction: MoveDirection): Position {
         return Position(x + direction.xDirection, y + direction.yDirection)
     }
+
+    fun getBetweenPositions(to: Position): List<Position> {
+        val betweenPositions = mutableListOf<Position>()
+        val xDirection = if (to.x > x) 1 else if (to.x < x) -1 else 0
+        val yDirection = if (to.y > y) 1 else if (to.y < y) -1 else 0
+        val moveDirection = MoveDirection.getByDirection(xDirection, yDirection) ?: return betweenPositions
+        var position = this
+        do {
+            position = position.plus(moveDirection)
+            betweenPositions.add(position)
+        } while (position.plus(moveDirection) != to)
+        return betweenPositions
+    }
 }

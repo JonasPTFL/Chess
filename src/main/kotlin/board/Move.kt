@@ -10,8 +10,13 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     fun execute(board: Board) {
         capturedPiece = board.getPiece(to)
         pieceHasMoved = piece.hasMoved
-        board.movePiece(from, to)
-        piece.move(to)
+        if (moveType.isCastling()) {
+            applyCastling(board)
+        }
+        else {
+            board.movePiece(from, to)
+            piece.move(to)
+        }
         board.changeTurn()
     }
 
@@ -28,5 +33,14 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
         val blocksCheck = !board.isCheck(color)
         revert(board)
         return blocksCheck
+    }
+
+    private fun applyCastling(board: Board) {
+        val rookPosition = if (moveType == MoveType.CastlingQueenSide) Position(3, to.y) else Position(5, to.y)
+        val kingPosition = if (moveType == MoveType.CastlingKingSide) Position(6, to.y) else Position(2, to.y)
+        board.movePiece(from, kingPosition)
+        board.movePiece(to, rookPosition)
+        piece.move(kingPosition)
+        board.getPiece(rookPosition)?.move(rookPosition)
     }
 }

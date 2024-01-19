@@ -49,6 +49,13 @@ class Board(val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }) {
         setPiece(to, piece)
     }
 
+    fun switchPositions(from: Position, to: Position) {
+        val pieceFrom = getPiece(from)
+        val pieceTo = getPiece(to)
+        setPiece(from, pieceTo)
+        setPiece(to, pieceFrom)
+    }
+
     fun isOccupied(position: Position) =
         isOccupiedByColor(position, PieceColor.White) || isOccupiedByColor(position, PieceColor.Black)
 

@@ -28,5 +28,9 @@ enum class MoveDirection(val xDirection: Int, val yDirection: Int) {
         fun getAllNormalDirections(): Set<MoveDirection> {
             return setOf(Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft)
         }
+
+        fun getByDirection(xDirection: Int, yDirection: Int): MoveDirection? {
+            return values().firstOrNull { it.xDirection == xDirection && it.yDirection == yDirection }
+        }
     }
 }

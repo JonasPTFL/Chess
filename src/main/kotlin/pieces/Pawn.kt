@@ -12,10 +12,16 @@ class Pawn(
         validMoves.addValidMovesInDirection(MoveDirection.Up, MoveDirection.Down, MoveType.NoHit)
         validMoves.addValidMovesInDirection(MoveDirection.UpRight, MoveDirection.DownRight, MoveType.OnlyHit)
         validMoves.addValidMovesInDirection(MoveDirection.UpLeft, MoveDirection.DownLeft, MoveType.OnlyHit)
-        if (!hasMoved) {
+        validMoves.addValidMovesInDirection(MoveDirection.UpRight, MoveDirection.DownRight, MoveType.EnPassant)
+        validMoves.addValidMovesInDirection(MoveDirection.UpLeft, MoveDirection.DownLeft, MoveType.EnPassant)
+        if (isOnStartingPosition()) {
             validMoves.addValidMovesInDirection(MoveDirection.Up, MoveDirection.Down, MoveType.NoHit, type.defaultMoveCount + 1)
         }
         return validMoves
+    }
+
+    private fun isOnStartingPosition(): Boolean {
+        return (color == PieceColor.White && position.y == 1) || (color == PieceColor.Black && position.y == 6)
     }
 
     override fun getThreatenedPositions(): List<Position> {

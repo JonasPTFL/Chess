@@ -105,17 +105,15 @@ class Visualizer(private val board: Board) : JFrame() {
                 val clickedPosition = Position(clickXPos / squareSize, clickYPos / squareSize)
                 val clickedPiece = board.getPiece(clickedPosition)
 
-                if (clickedPiece?.color == board.turn) {
+                val clickedMove = selectedPiece?.getValidMoves()?.find { move -> move.to == clickedPosition }
+                selectedPiece = if (clickedMove == null && clickedPiece?.color == board.turn) {
                     // change selected piece, if clicked piece is of same color
-                    selectedPiece = clickedPiece
+                    clickedPiece
                 } else {
                     // move selected piece, if clicked position is valid
-                    selectedPiece?.let {
-                        val clickedMove = it.getValidMoves().find { move -> move.to == clickedPosition }
-                        clickedMove?.execute(board)
-                        // deselect piece, if clicked position is not valid or move was executed
-                        selectedPiece = null
-                    }
+                    clickedMove?.execute(board)
+                    // deselect piece, if clicked position is not valid or move was executed
+                    null
                 }
                 update()
             }
