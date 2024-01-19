@@ -4,6 +4,7 @@ import board.Board
 import board.Move
 import pieces.PieceColor
 import pieces.PieceType
+import kotlin.concurrent.thread
 
 /**
  *
@@ -15,7 +16,8 @@ class Game(
     var onPromotionPieceRequiredWhite: ((xPosition: Int) -> PieceType?)? = null,
     var onPromotionPieceRequiredBlack: ((xPosition: Int) -> PieceType?)? = null,
     var onWhiteTurn: (() -> Unit)? = null,
-    var onBlackTurn: (() -> Unit)? = null
+    var onBlackTurn: (() -> Unit)? = null,
+    private val randomMoveDelay: Long = 0
 ) {
     private val gameStateListeners = mutableListOf<GameStateListener>()
 
@@ -59,15 +61,18 @@ class Game(
         updateGameState()
 
         if (state == GameState.Running) {
-            // notify next turn
-            when (board.turn) {
-                PieceColor.White -> onWhiteTurn?.invoke() ?: doRandomValidMove()
-                PieceColor.Black -> onBlackTurn?.invoke() ?: doRandomValidMove()
+            // execute next turn on separate thread, to not block the visualizer and code execution of other players
+            thread {
+                when (board.turn) {
+                    PieceColor.White -> onWhiteTurn?.invoke() ?: doRandomValidMove()
+                    PieceColor.Black -> onBlackTurn?.invoke() ?: doRandomValidMove()
+                }
             }
         }
     }
 
-    fun doRandomValidMove() {
+    private fun doRandomValidMove() {
+        Thread.sleep(randomMoveDelay)
         val pieces = board.getAllPieces(board.turn)
         val validMoves = pieces.flatMap { it.getValidMoves() }
         val randomMove = validMoves.random()

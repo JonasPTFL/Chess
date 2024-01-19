@@ -89,7 +89,8 @@ class Visualizer(
             game.onWhiteTurn = {
                 allowedToMove = true
             }
-        } else if (actionAllowedForColor.contains(PieceColor.Black)) {
+        }
+        if (actionAllowedForColor.contains(PieceColor.Black)) {
             game.onPromotionPieceRequiredBlack = { selectedPromotionPiece }
             game.onBlackTurn = { allowedToMove = true }
         }
