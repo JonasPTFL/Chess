@@ -1,9 +1,11 @@
 package gui
 
-import board.Board
 import board.Move
 import board.MoveType
 import board.Position
+import game.Game
+import game.GameState
+import game.GameStateListener
 import pieces.Piece
 import pieces.PieceColor
 import pieces.PieceType
@@ -24,7 +26,10 @@ import javax.swing.JPanel
  * @author Jonas Pollpeter
  */
 
-class Visualizer(private val board: Board) : JFrame() {
+class Visualizer(
+    private val game: Game,
+    actionAllowedForColor: Set<PieceColor> = setOf(PieceColor.White)
+) : JFrame(), GameStateListener {
     private val chessPiecesTextureFileName = "chess_pieces_texture.png"
     private val texturePieceCount = 6
     private val texturePieceOrder =
@@ -42,10 +47,12 @@ class Visualizer(private val board: Board) : JFrame() {
     private val colorPromotionCircleBackground = Color.decode("#b0b0b0")
     private val colorPromotionCircleHighlightedBackground = Color.decode("#cb6a31")
 
+    private val board = game.board
     private val boardPanel: JPanel
     private var selectedPiece: Piece? = null
     private var boardFlipped = true
     private var gameEnd = false
+    private var allowedToMove = false
 
     private var promotionMove: Move? = null
     private var selectedPromotionPiece: PieceType? = null
@@ -76,10 +83,19 @@ class Visualizer(private val board: Board) : JFrame() {
             .getSubimage(0, 0, chessPiecesTexture.width / texturePieceCount, chessPiecesTexture.height / 2)
             .getScaledInstance(32, 32, Image.SCALE_SMOOTH)
 
-        // register on promotion piece required callback
-        board.setOnPromotionRequest { xPosition ->
-            selectedPromotionPiece
+
+        // register for callbacks on game
+        if (actionAllowedForColor.contains(PieceColor.White)) {
+            game.onPromotionPieceRequiredWhite = { selectedPromotionPiece }
+            game.onWhiteTurn = {
+                allowedToMove = true
+            }
+        } else if (actionAllowedForColor.contains(PieceColor.Black)) {
+            game.onPromotionPieceRequiredBlack = { selectedPromotionPiece }
+            game.onBlackTurn = { allowedToMove = true }
         }
+        // register for callbacks on game state
+        game.addGameStateListener(this)
 
         // draw board
         boardPanel = object : JPanel() {
@@ -120,12 +136,12 @@ class Visualizer(private val board: Board) : JFrame() {
         }
         val mouseListener = object : MouseAdapter() {
             override fun mousePressed(e: MouseEvent) {
-                if (gameEnd) return
+                if (gameEnd || !allowedToMove) return
                 if (promotionMove != null) {
                     promotionPieceTypes.forEachIndexed { index, pieceType ->
                         if (isMouseHoveringOverPromotionPiece(index)) {
                             selectedPromotionPiece = pieceType
-                            promotionMove?.execute(board)
+                            promotionMove?.execute(game)
                             promotionMove = null
                             update()
                             return
@@ -148,7 +164,7 @@ class Visualizer(private val board: Board) : JFrame() {
                         selectedPromotionPiece = null
                     } else {
                         // move selected piece, if clicked position is valid
-                        clickedMove?.execute(board)
+                        clickedMove?.execute(game)
                     }
                     // deselect piece, if clicked position is not valid or move was executed
                     null
@@ -285,5 +301,13 @@ class Visualizer(private val board: Board) : JFrame() {
 
     fun update() {
         boardPanel.repaint()
+    }
+
+    override fun onGameStateChanged(gameState: GameState) {
+        update()
+    }
+
+    override fun onMoveExecuted(move: Move) {
+        allowedToMove = false
     }
 }

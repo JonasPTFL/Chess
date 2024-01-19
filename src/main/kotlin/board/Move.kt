@@ -1,5 +1,6 @@
 package board
 
+import game.Game
 import pieces.Piece
 import pieces.PieceColor
 
@@ -7,7 +8,12 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     private var capturedPiece: Piece? = null
     private var pieceHasMoved = piece.hasMoved
 
-    fun execute(board: Board) {
+    fun execute(game: Game) {
+        internalExecute(game.board, true)
+        game.onMoveExecuted(this)
+    }
+
+    private fun internalExecute(board: Board, isUserExecuted: Boolean){
         capturedPiece = board.getPiece(to)
         pieceHasMoved = piece.hasMoved
         when {
@@ -39,7 +45,7 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     }
 
     fun blocksCheck(board: Board, color: PieceColor): Boolean {
-        execute(board)
+        internalExecute(board, false)
         val blocksCheck = !board.isCheck(color)
         revert(board)
         return blocksCheck

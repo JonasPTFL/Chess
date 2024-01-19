@@ -74,7 +74,7 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
             val positionWhite = Position(i, 0)
             val positionBlack = Position(i, 7)
             setPiece(positionWhite, PieceFactory.createPiece(edgePieces[i], PieceColor.White, positionWhite, this))
-//            setPiece(positionBlack, PieceFactory.createPiece(edgePieces[i], PieceColor.Black, positionBlack, this))
+            setPiece(positionBlack, PieceFactory.createPiece(edgePieces[i], PieceColor.Black, positionBlack, this))
         }
 
         // pawns
@@ -82,23 +82,12 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
             val positionWhite = Position(i, 1)
             val positionBlack = Position(i, 6)
             setPiece(positionWhite, PieceFactory.createPiece(PieceType.Pawn, PieceColor.White, positionWhite, this))
-//            setPiece(positionBlack, PieceFactory.createPiece(PieceType.Pawn, PieceColor.Black, positionBlack, this))
+            setPiece(positionBlack, PieceFactory.createPiece(PieceType.Pawn, PieceColor.Black, positionBlack, this))
         }
-        setPiece(Position(7,7), PieceFactory.createPiece(PieceType.King, PieceColor.Black, Position(7,7), this))
     }
 
     fun changeTurn() {
         turn = if (turn == PieceColor.White) PieceColor.Black else PieceColor.White
-        if (turn == PieceColor.Black) {
-            doRandomValidMove()
-        }
-    }
-
-    fun doRandomValidMove() {
-        val pieces = getAllPieces(turn)
-        val validMoves = pieces.flatMap { it.getValidMoves() }
-        val randomMove = validMoves.random()
-        randomMove.execute(this)
     }
 
     fun getAllPieces(): List<Piece> {
@@ -123,6 +112,10 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
 
     fun isStaleMate(color: PieceColor): Boolean {
         return !isCheck(color) && getAllPieces(color).all { it.getValidMoves().isEmpty() }
+    }
+
+    fun isDraw(): Boolean {
+        return getAllPieces().size == 2
     }
 
     fun getLastMove(): Move? {

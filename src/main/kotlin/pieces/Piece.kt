@@ -19,9 +19,8 @@ open class Piece(
     var position = initialPosition
         protected set
 
-    fun getValidMoves(): List<Move> {
-        return if (board.isCheck(color) && type != PieceType.King) getPossibleMoves().filter { it.blocksCheck(board, color) }
-        else getPossibleMoves()
+    open fun getValidMoves(): List<Move> {
+        return getPossibleMoves().filter { it.blocksCheck(board, color) }
     }
 
     open fun getPossibleMoves(): List<Move> {
