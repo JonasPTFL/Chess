@@ -20,7 +20,7 @@ open class Piece(
         protected set
 
     open fun getValidMoves(): List<Move> {
-        return getPossibleMoves().filter { it.isCheckSafe(board, color) }
+        return getPossibleMoves().filter { it.isCheckSafe(board, color) }.distinct()
     }
 
     open fun getPossibleMoves(): List<Move> {

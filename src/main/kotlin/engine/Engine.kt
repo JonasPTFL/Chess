@@ -27,7 +27,8 @@ class Engine(
     }
 
     fun getBestMove(board: Board): Move {
-        return minimaxDecision(board)
+        val bestMove = minimaxDecision(board)
+        return bestMove.copy(piece = board.getPiece(bestMove.from) ?: throw IllegalStateException("no piece found"))
     }
 
     private fun utility(board: Board, color: PieceColor): Int {
@@ -47,15 +48,21 @@ class Engine(
     private fun successorFunction(board: Board): List<Board> {
         return board.getAllPieces(board.turn).flatMap { piece ->
             piece.getValidMoves().map { move ->
-                val newBoard = board.copy()
-                move.executeOnNewBoard(newBoard)
-                newBoard
+                val copiedBoard = board.copy()
+                val copiedMove = move.copy(piece = copiedBoard.getPiece(move.from)!!)
+                copiedMove.executeOnNewBoard(copiedBoard)
+                copiedBoard
             }
         }
     }
 
     private fun minimaxDecision(board: Board): Move {
-        val bestBoard = successorFunction(board).maxByOrNull {
+        firstLayerMoves.clear()
+        val bestBoard = successorFunction(board).also { it.forEach {
+//            it.printToConsole()
+            println("move: ${it.getLastMove()} moves: ${it.getMoves().size}")
+        }
+        }.maxByOrNull {
             val result = minValue(it, Int.MIN_VALUE, Int.MAX_VALUE, 0)
             val lastMove = it.getLastMove()
             lastMove?.let { move ->
@@ -63,7 +70,9 @@ class Engine(
             }
             result
         }
-        firstLayerMoves.sortedByDescending { it.second }.joinToString("\n") { "${it.second}: ${it.first} at ${bestBoard?.getMoves()?.size}" }.also { println(it) }
+//        firstLayerMoves.sortedByDescending { it.second }.joinToString("\n") {
+//            "${it.second}: ${it.first} at ${bestBoard?.getMoves()?.size}"
+//        }.also { println(it) }
         bestBoard?.printToConsole()
         return bestBoard?.getLastMove() ?: throw IllegalStateException("no successors found")
     }
