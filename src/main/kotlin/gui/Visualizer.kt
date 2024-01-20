@@ -10,6 +10,8 @@ import pieces.Piece
 import pieces.PieceColor
 import pieces.PieceType
 import java.awt.*
+import java.awt.event.KeyEvent
+import java.awt.event.KeyListener
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
@@ -17,7 +19,6 @@ import java.io.IOException
 import javax.imageio.ImageIO
 import javax.swing.JFrame
 import javax.swing.JPanel
-
 
 /**
  *
@@ -27,7 +28,7 @@ import javax.swing.JPanel
 class Visualizer(
     private val game: Game,
     actionAllowedForColor: Set<PieceColor> = setOf(PieceColor.White)
-) : JFrame(), GameStateListener {
+) : JFrame(), GameStateListener, KeyListener {
     private val chessPiecesTextureFileName = "chess_pieces_texture.png"
     private val texturePieceCount = 6
     private val texturePieceOrder =
@@ -48,7 +49,8 @@ class Visualizer(
     private val board = game.board
     private val boardPanel: JPanel
     private var selectedPiece: Piece? = null
-    private var boardFlipped = true
+    private var boardFlipped = false
+    private var showCoordinates = false
     private var allowedToMove = false
 
     private var promotionMove: Move? = null
@@ -61,6 +63,9 @@ class Visualizer(
         PieceType.Bishop
     )
     private var lastMousePosition: Point? = null
+
+    private val boardFlipKey = 'f'
+    private val showCoordinatesKey = 'h'
 
     init {
         title = "Chess"
@@ -113,6 +118,14 @@ class Visualizer(
                         if (validMovePositions.contains(position)) {
                             drawValidMoveMarker(g, xPanelCoordinate, yPanelCoordinate, position)
                         }
+                        if (showCoordinates) {
+                            g.color = Color.WHITE
+                            g.drawString(
+                                "${position.x},${position.y}",
+                                (xPanelCoordinate+1) * squareSize - 18,
+                                (yPanelCoordinate+1) * squareSize - 4
+                            )
+                        }
                     }
                 }
                 if (promotionMove != null) drawPromotionSelection(g)
@@ -164,8 +177,27 @@ class Visualizer(
         }
         boardPanel.addMouseListener(mouseListener)
         boardPanel.addMouseMotionListener(mouseListener)
+        addKeyListener(this)
 
         add(boardPanel)
+    }
+
+    override fun keyTyped(e: KeyEvent?) {
+        if (e?.keyChar == boardFlipKey) {
+            boardFlipped = !boardFlipped
+            update()
+        }
+        if (e?.keyChar == showCoordinatesKey) {
+            showCoordinates = !showCoordinates
+            update()
+        }
+    }
+
+    override fun keyPressed(e: KeyEvent?) {
+
+    }
+
+    override fun keyReleased(e: KeyEvent?) {
     }
 
     private fun Int.toPanelXPosition(): Int {
