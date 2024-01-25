@@ -203,16 +203,16 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     }
 
     fun printToConsole() {
-        val greenColor = "\u001b[32m"
-        val reset = "\u001b[0m" // to reset color to the default
+        val blackFontColor = "\u001B[30m"
+        val resetFontColor = "\u001b[0m" // to reset color to the default
         println("  0 1 2 3 4 5 6 7")
         for (y in 7 downTo 0) {
             print("$y ")
             for (x in 0..7) {
                 val piece = getPiece(Position(x, y))
-                if (piece?.color == PieceColor.White) print(greenColor)
+                if (piece?.color == PieceColor.Black) print(blackFontColor)
                 print("${piece?.type?.getCharacterIdentifier() ?: " "} ")
-                if (piece?.color == PieceColor.White) print(reset)
+                if (piece?.color == PieceColor.Black) print(resetFontColor)
             }
             println()
         }
