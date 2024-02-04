@@ -127,7 +127,8 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     }
 
     fun isThreefoldRepetition(): Boolean {
-        return moves.groupBy { it }.any { it.value.size >= 3 }
+        // TODO enable again
+        return false //moves.groupBy { it }.any { it.value.size >= 3 }
     }
 
     fun isFiftyMoveRule(): Boolean {
@@ -183,6 +184,11 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
 
     fun setOnPromotionRequest(onPromotionPieceRequired: ((xPosition: Int) -> PieceType?)?) {
         this.onPromotionPieceRequired = onPromotionPieceRequired
+    }
+
+    fun undoLastMove() {
+        val lastMove = getLastMove() ?: return
+        lastMove.revert(this)
     }
 
     fun copy(): Board {

@@ -57,4 +57,8 @@ data class Position(val x: Int, val y: Int) {
     fun getColor(): PieceColor {
         return if ((x + y) % 2 == 0) PieceColor.White else PieceColor.Black
     }
+
+    fun isOnEdge(): Boolean {
+        return x == 0 || x == 7 || y == 0 || y == 7
+    }
 }

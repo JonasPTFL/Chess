@@ -4,14 +4,13 @@ import game.GameState
 import game.GameStateListener
 import gui.Visualizer
 import pieces.PieceColor
-import java.lang.IllegalStateException
 import javax.swing.SwingUtilities
 import kotlin.concurrent.thread
 
 fun main() {
     println("Chess")
 
-    playGames(n = 1, delayBetweenMoves = 10, delayBetweenGames = 1000, concurrent = false, asColor = setOf(PieceColor.White))
+    playGames(n = 5, delayBetweenMoves = 1500, delayBetweenGames = 1000, concurrent = false, asColor = setOf(PieceColor.Black))
 }
 
 fun playGames(
@@ -47,6 +46,10 @@ fun playGame(
 ) {
     val game = Game(randomMoveDelay = delayBetweenMoves)
     var visualizer: Visualizer? = null
+
+    game.onWhiteTurn = {
+        game.doNextComputerMove()
+    }
 
     // add listener to close visualizer when game is over
     game.addGameStateListener(object : GameStateListener {

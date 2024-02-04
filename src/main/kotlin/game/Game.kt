@@ -24,11 +24,7 @@ class Game(
 
     var state = GameState.Initial
         private set
-    private val computerEngine = Engine(
-        maxDepth = 1,
-        pieceValue = 1f,
-        piecePossibleMoveSize = 1f,
-    )
+    private val computerEngine = Engine()
 
     init {
         board.initializeBoard()
@@ -66,6 +62,8 @@ class Game(
         // check game state update
         updateGameState()
 
+        computerEngine.utility(board)
+
         if (state == GameState.Running) {
             // execute next turn on separate thread, to not block the visualizer and code execution of other players
             thread {
@@ -77,12 +75,12 @@ class Game(
         }
     }
 
-    private fun doNextComputerMove() {
+    fun doNextComputerMove() {
         val computerMove = computerEngine.getBestMove(board)
         computerMove.execute(this)
     }
 
-    private fun doRandomValidMove() {
+    fun doRandomValidMove() {
         Thread.sleep(randomMoveDelay)
         val pieces = board.getAllPieces(board.turn)
         val validMoves = pieces.flatMap { it.getValidMoves() }
