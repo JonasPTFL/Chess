@@ -2,26 +2,35 @@ import board.Move
 import game.Game
 import game.GameState
 import game.GameStateListener
+import game.PlayerType
 import gui.Visualizer
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import pieces.PieceColor
+import stockfish_api.StockfishApiConnection
 import javax.swing.SwingUtilities
 import kotlin.concurrent.thread
 
 fun main() {
     println("Chess")
 
+    val conn = StockfishApiConnection()
+    runBlocking {
+        launch {
+            val response = conn.getBestMoveHTTPResponse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 10)
+            println(response)
+        }
+    }
+
+
     playGames(
         n = 5,
         delayBetweenMoves = 0,
         delayBetweenGames = 1000,
         concurrent = false,
-        whitePlayerType = PlayerType.Human,
-        blackPlayerType = PlayerType.Engine
+        whitePlayerType = PlayerType.Stockfish,
+        blackPlayerType = PlayerType.Stockfish
     )
-}
-
-enum class PlayerType {
-    Human, Engine, Random
 }
 
 fun playGames(
@@ -86,16 +95,14 @@ fun playGame(
     // set white player action according to player type
     if (whitePlayerType != PlayerType.Human) {
         game.onWhiteTurn = {
-            if (whitePlayerType == PlayerType.Random) game.doRandomValidMove()
-            else if (whitePlayerType == PlayerType.Engine) game.doEngineMove()
+            game.doMove(whitePlayerType)
         }
     }
 
     // set black player action according to player type
     if (blackPlayerType != PlayerType.Human) {
         game.onBlackTurn = {
-            if (blackPlayerType == PlayerType.Random) game.doRandomValidMove()
-            else if (blackPlayerType == PlayerType.Engine) game.doEngineMove()
+            game.doMove(blackPlayerType)
         }
     }
 

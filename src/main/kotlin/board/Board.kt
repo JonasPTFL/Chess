@@ -4,6 +4,7 @@ import pieces.Piece
 import pieces.PieceColor
 import pieces.PieceFactory
 import pieces.PieceType
+import kotlin.math.abs
 
 /**
  *
@@ -160,6 +161,58 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
         }
     }
 
+    fun getFENNotationString(): String {
+        val sb = StringBuilder()
+        for (y in 7 downTo 0) {
+            var emptyFields = 0
+            for (x in 0..7) {
+                val piece = getPiece(Position(x, y))
+                if (piece == null) {
+                    emptyFields++
+                } else {
+                    if (emptyFields > 0) {
+                        sb.append(emptyFields)
+                        emptyFields = 0
+                    }
+                    sb.append(piece.type.getFENNotation(piece.color))
+                }
+            }
+            if (emptyFields > 0) {
+                sb.append(emptyFields)
+            }
+            if (y > 0) {
+                sb.append("/")
+            }
+        }
+        sb.append(" ")
+        sb.append(if (turn == PieceColor.White) "w" else "b")
+        sb.append(" ")
+        // check if castling is possible and add it to the FEN string
+        val castlingMoves = moves.filter { it.moveType.isCastling() }
+        val whiteCanCastle = castlingMoves.none { it.piece.color == PieceColor.White }
+        val blackCanCastle = castlingMoves.none { it.piece.color == PieceColor.Black }
+        if (!whiteCanCastle && !blackCanCastle) sb.append("-")
+        else {
+            if (whiteCanCastle) sb.append("KQ")
+            if (blackCanCastle) sb.append("kq")
+        }
+        sb.append(" ")
+        // check if en passant is possible and add it to the FEN string
+        val lastMove = getLastMove()
+        if (lastMove != null && lastMove.piece.type == PieceType.Pawn && abs(lastMove.from.y - lastMove.to.y) == 2) {
+            sb.append(Position.between(lastMove.from, lastMove.to).toAlgebraicNotation())
+        } else {
+            sb.append("-")
+        }
+        sb.append(" ")
+        // add half-move counter
+        val halfMoveCounter = moves.takeLastWhile { !it.hasCapturedPiece() && it.piece.type != PieceType.Pawn }.size
+        sb.append(halfMoveCounter)
+        sb.append(" ")
+        sb.append(moves.size / 2)
+        return sb.toString()
+    }
+
     fun getMoves(): List<Move> {
         return moves
     }
@@ -212,16 +265,23 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     fun printToConsole() {
         val blackFontColor = "\u001B[30m"
         val resetFontColor = "\u001b[0m" // to reset color to the default
-        println("  0 1 2 3 4 5 6 7")
+        val stringBuilder = StringBuilder()
+        stringBuilder.appendLine("  0 1 2 3 4 5 6 7")
         for (y in 7 downTo 0) {
-            print("$y ")
+            stringBuilder.append("$y ")
             for (x in 0..7) {
                 val piece = getPiece(Position(x, y))
-                if (piece?.color == PieceColor.Black) print(blackFontColor)
-                print("${piece?.type?.getCharacterIdentifier() ?: " "} ")
-                if (piece?.color == PieceColor.Black) print(resetFontColor)
+                if (piece != null) {
+                    if (piece.color == PieceColor.Black) print(blackFontColor)
+                    stringBuilder.append(piece.type.getFENNotation(piece.color) + " ")
+                    if (piece.color == PieceColor.Black) print(resetFontColor)
+                } else {
+                    stringBuilder.append("  ")
+                }
             }
-            println()
+            stringBuilder.appendLine()
         }
+
+        println(stringBuilder.toString())
     }
 }

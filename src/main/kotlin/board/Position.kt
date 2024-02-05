@@ -18,10 +18,9 @@ data class Position(val x: Int, val y: Int) {
 
     fun isThreatened(color: PieceColor, board: Board): Boolean {
         board.getAllPieces(color).forEach { piece ->
-            if (piece.type == PieceType.King){
+            if (piece.type == PieceType.King) {
                 if (distanceTo(piece.position) <= 1) return true
-            }
-            else {
+            } else {
                 val threatenedPositions = piece.getThreatenedPositions()
                 if (threatenedPositions.any { it == this }) return true
             }
@@ -60,5 +59,21 @@ data class Position(val x: Int, val y: Int) {
 
     fun isOnEdge(): Boolean {
         return x == 0 || x == 7 || y == 0 || y == 7
+    }
+
+    fun toAlgebraicNotation(): String {
+        return ('a' + x) + (y + 1).toString()
+    }
+
+    companion object {
+        fun between(from: Position, to: Position): Position {
+            return Position((from.x + to.x) / 2, (from.y + to.y) / 2)
+        }
+
+        fun fromAlgebraicNotation(algebraicPosition: String): Position {
+            val x = algebraicPosition[0] - 'a'
+            val y = algebraicPosition[1].toString().toInt() - 1
+            return Position(x, y)
+        }
     }
 }

@@ -3,6 +3,7 @@ package board
 import game.Game
 import pieces.Piece
 import pieces.PieceColor
+import pieces.PieceType
 
 data class Move(val piece: Piece, val from: Position, val to: Position, val moveType: MoveType = MoveType.Normal) {
     private var capturedPiece: Piece? = null
@@ -88,5 +89,30 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
 
     override fun toString(): String {
         return "${piece.color} ${piece.type} from ${from.x},${from.y} to ${to.x},${to.y}"
+    }
+
+    companion object {
+        fun fromAlgebraic(moveString: String, board: Board): Move {
+            val from = Position.fromAlgebraicNotation(moveString.substring(0, 2))
+            val to = Position.fromAlgebraicNotation(moveString.substring(2, 4))
+            val piece = board.getPiece(from) ?: throw IllegalArgumentException("no piece at position $from")
+            // determine move type based on piece type and move distance
+            val moveType = when (piece.type) {
+                PieceType.King -> {
+                    if (from.distanceTo(to) == 2) {
+                        if (to.x == 2) MoveType.CastlingQueenSide else MoveType.CastlingKingSide
+                    } else {
+                        MoveType.Normal
+                    }
+                }
+                PieceType.Pawn -> {
+                    if (to.y == 0 || to.y == 7) MoveType.Promotion
+                    else if (to.x != from.x) MoveType.EnPassant
+                    else MoveType.Normal
+                }
+                else -> MoveType.Normal
+            }
+            return Move(piece, from, to, moveType)
+        }
     }
 }

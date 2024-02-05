@@ -10,6 +10,7 @@ import board.MoveDirection
 enum class PieceType(
     val description: String,
     val asciiSymbol: String,
+    val fenNotationCharacter: Char,
     val defaultMoveCount: Int,
     val value: Int,
     val moveDirections: Set<MoveDirection>
@@ -17,6 +18,7 @@ enum class PieceType(
     Queen(
         "Queen",
         "♕",
+        'Q',
         7,
         90,
         MoveDirection.getAllNormalDirections()
@@ -24,6 +26,7 @@ enum class PieceType(
     King(
         "King",
         "♔",
+        'K',
         1,
         900,
         MoveDirection.getAllNormalDirections()
@@ -31,6 +34,7 @@ enum class PieceType(
     Rook(
         "Rook",
         "♖",
+        'R',
         7,
         50,
         setOf(MoveDirection.Up, MoveDirection.Right, MoveDirection.Down, MoveDirection.Left)
@@ -38,6 +42,7 @@ enum class PieceType(
     Bishop(
         "Bishop",
         "♗",
+        'B',
         7,
         30,
         setOf(MoveDirection.UpRight, MoveDirection.DownRight, MoveDirection.DownLeft, MoveDirection.UpLeft)
@@ -45,6 +50,7 @@ enum class PieceType(
     Knight(
         "Knight",
         "♘",
+        'N',
         1,
         30,
         setOf(
@@ -61,13 +67,18 @@ enum class PieceType(
     Pawn(
         "Pawn",
         "♙",
+        'P',
         1,
         10,
         setOf(MoveDirection.Up, MoveDirection.UpRight, MoveDirection.UpLeft)
     );
 
-    fun getCharacterIdentifier(): Char {
-        return description.firstOrNull().takeUnless { this == King } ?: '+'
+    fun getFENNotation(color: PieceColor): String {
+        return if (color == PieceColor.White) {
+            fenNotationCharacter.uppercase()
+        } else {
+            fenNotationCharacter.lowercase()
+        }
     }
 
     companion object {
