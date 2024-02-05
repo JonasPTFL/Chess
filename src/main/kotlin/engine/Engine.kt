@@ -2,6 +2,7 @@ package engine
 
 import board.Board
 import board.Move
+import board.MoveType
 import pieces.PieceColor
 import pieces.PieceType
 import kotlin.math.max
@@ -118,13 +119,25 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
     }
 
     private fun successorFunction(board: Board): List<Board> {
-        return board.getAllPieces(board.turn).flatMap { piece ->
+        return board.getAllPieces(board.turn).sortedByDescending {
+            // sort pieces by value to improve alpha beta pruning
+            it.type.value
+        }.flatMap { piece ->
             piece.getValidMoves().map { move ->
                 val copiedBoard = board.copy()
                 val copiedMove = move.copy(piece = copiedBoard.getPiece(move.from)!!)
                 copiedMove.executeOnNewBoard(copiedBoard)
-                copiedBoard
-            }
+                move to copiedBoard
+            }.sortedByDescending {
+                // sort moves with captures first to improve alpha beta pruning
+                var sortScore = 0
+                val move = it.first
+                if (move.moveType == MoveType.Promotion) sortScore+=3
+                if (move.hasCapturedPiece()) sortScore+=2
+                if (move.moveType.isCastling()) sortScore+=1
+
+                sortScore
+            }.map { it.second }
         }
     }
 }
