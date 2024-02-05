@@ -18,35 +18,35 @@ enum class PieceType(
         "Queen",
         "♕",
         7,
-        9,
+        90,
         MoveDirection.getAllNormalDirections()
     ),
     King(
         "King",
         "♔",
         1,
-        0,
+        900,
         MoveDirection.getAllNormalDirections()
     ),
     Rook(
         "Rook",
         "♖",
         7,
-        5,
+        50,
         setOf(MoveDirection.Up, MoveDirection.Right, MoveDirection.Down, MoveDirection.Left)
     ),
     Bishop(
         "Bishop",
         "♗",
         7,
-        3,
+        30,
         setOf(MoveDirection.UpRight, MoveDirection.DownRight, MoveDirection.DownLeft, MoveDirection.UpLeft)
     ),
     Knight(
         "Knight",
         "♘",
         1,
-        3,
+        30,
         setOf(
             MoveDirection.UpUpRight,
             MoveDirection.UpRightRight,
@@ -62,7 +62,7 @@ enum class PieceType(
         "Pawn",
         "♙",
         1,
-        1,
+        10,
         setOf(MoveDirection.Up, MoveDirection.UpRight, MoveDirection.UpLeft)
     );
 

@@ -3,6 +3,7 @@ package engine
 import board.Board
 import board.Move
 import pieces.PieceColor
+import pieces.PieceType
 import kotlin.math.max
 import kotlin.math.min
 
@@ -17,8 +18,7 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
 
     init {
         println("Engine initialized")
-        println("maxDepth: ${parameters.maxDepth}")
-        println("maxTime: ${parameters.maxTime}")
+        parameters.printToConsole()
     }
 
     private fun getCurrentDepth(board: Board): Int {
@@ -28,6 +28,15 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
     private fun Board.isEndgame(): Boolean {
         return getAllPieces(PieceColor.White).sumOf { it.type.value } <= parameters.endgameMaxPieceCount
                 && getAllPieces(PieceColor.Black).sumOf { it.type.value } <= parameters.endgameMaxPieceCount
+    }
+
+    private fun PieceType.getPieceSquareTable(isEndgame: Boolean) = when(this) {
+        PieceType.Pawn -> PieceSquareTables.pawnTable
+        PieceType.Knight -> PieceSquareTables.knightTable
+        PieceType.Bishop -> PieceSquareTables.bishopTable
+        PieceType.Rook -> PieceSquareTables.rookTable
+        PieceType.Queen -> PieceSquareTables.queenTable
+        PieceType.King -> if (isEndgame) PieceSquareTables.kingTableEndgame else PieceSquareTables.kingTable
     }
 
     fun getBestMove(board: Board): Move {
@@ -80,7 +89,13 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
 
     fun utility(board: Board): Float {
         var score = parameters.pieceValueWeight * board.getAllPieces().sumOf { piece ->
-            if (piece.color == PieceColor.White) piece.type.value else piece.type.value.unaryMinus()
+            val yPos = if (piece.color == PieceColor.White) 7 - piece.position.y else piece.position.y
+            val xPos = piece.position.x
+
+            val pieceSquareTable = piece.type.getPieceSquareTable(board.isEndgame())
+            val pieceTypeValue = if (piece.color == PieceColor.White) piece.type.value else piece.type.value.unaryMinus()
+
+            pieceTypeValue + pieceSquareTable[yPos][xPos]
         }
 
         if (board.isCheckMate(PieceColor.Black)) {

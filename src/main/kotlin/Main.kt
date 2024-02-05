@@ -10,7 +10,18 @@ import kotlin.concurrent.thread
 fun main() {
     println("Chess")
 
-    playGames(n = 5, delayBetweenMoves = 0, delayBetweenGames = 1000, concurrent = false)
+    playGames(
+        n = 5,
+        delayBetweenMoves = 0,
+        delayBetweenGames = 1000,
+        concurrent = false,
+        whitePlayerType = PlayerType.Human,
+        blackPlayerType = PlayerType.Engine
+    )
+}
+
+enum class PlayerType {
+    Human, Engine, Random
 }
 
 fun playGames(
@@ -18,21 +29,22 @@ fun playGames(
     delayBetweenMoves: Long = 100,
     delayBetweenGames: Long = 1000,
     concurrent: Boolean = false,
-    asColor: Set<PieceColor> = emptySet()
+    whitePlayerType: PlayerType = PlayerType.Human,
+    blackPlayerType: PlayerType = PlayerType.Engine,
 ) {
     if (n < 0) {
         if (concurrent) throw IllegalStateException("concurrent games not allowed for infinite games")
-        playGame(delayBetweenMoves, delayBetweenGames, asColor) {
-            playGames(n, delayBetweenMoves, delayBetweenGames, false, asColor)
+        playGame(delayBetweenMoves, delayBetweenGames, whitePlayerType) {
+            playGames(n, delayBetweenMoves, delayBetweenGames, false, whitePlayerType, blackPlayerType)
         }
     } else if (n > 0) {
         if (concurrent) {
             repeat(n) {
-                playGame(delayBetweenMoves, delayBetweenGames, asColor)
+                playGame(delayBetweenMoves, delayBetweenGames, whitePlayerType, blackPlayerType)
             }
         } else {
-            playGame(delayBetweenMoves, delayBetweenGames, asColor) {
-                playGames(n - 1, delayBetweenMoves, delayBetweenGames, false, asColor)
+            playGame(delayBetweenMoves, delayBetweenGames, whitePlayerType, blackPlayerType) {
+                playGames(n - 1, delayBetweenMoves, delayBetweenGames, false, whitePlayerType, blackPlayerType)
             }
         }
     }
@@ -41,18 +53,12 @@ fun playGames(
 fun playGame(
     delayBetweenMoves: Long = 0,
     delayBeforeCloseVisualizer: Long = 1000,
-    asColor: Set<PieceColor> = emptySet(),
+    whitePlayerType: PlayerType = PlayerType.Human,
+    blackPlayerType: PlayerType = PlayerType.Engine,
     onGameFinished: (() -> Unit)? = null
 ) {
     val game = Game(randomMoveDelay = delayBetweenMoves)
     var visualizer: Visualizer? = null
-
-    game.onBlackTurn = {
-        game.doNextComputerMove()
-    }
-    game.onWhiteTurn = {
-        game.doRandomValidMove()
-    }
 
     // add listener to close visualizer when game is over
     game.addGameStateListener(object : GameStateListener {
@@ -71,8 +77,30 @@ fun playGame(
         override fun onMoveExecuted(move: Move) {}
     })
 
+    val actionAllowedForColor = mutableSetOf<PieceColor>()
+
+    // set allowed action for human players
+    if (whitePlayerType == PlayerType.Human) actionAllowedForColor += PieceColor.White
+    if (blackPlayerType == PlayerType.Human) actionAllowedForColor += PieceColor.Black
+
+    // set white player action according to player type
+    if (whitePlayerType != PlayerType.Human) {
+        game.onWhiteTurn = {
+            if (whitePlayerType == PlayerType.Random) game.doRandomValidMove()
+            else if (whitePlayerType == PlayerType.Engine) game.doEngineMove()
+        }
+    }
+
+    // set black player action according to player type
+    if (blackPlayerType != PlayerType.Human) {
+        game.onBlackTurn = {
+            if (blackPlayerType == PlayerType.Random) game.doRandomValidMove()
+            else if (blackPlayerType == PlayerType.Engine) game.doEngineMove()
+        }
+    }
+
     SwingUtilities.invokeLater {
-        visualizer = Visualizer(game, actionAllowedForColor = asColor)
+        visualizer = Visualizer(game, actionAllowedForColor)
         visualizer?.isVisible = true
 
         game.start()

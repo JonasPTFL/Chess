@@ -34,7 +34,7 @@ class Game(
     fun start() {
         if (state == GameState.Initial) {
             state = GameState.Running
-            onWhiteTurn?.invoke() ?: doNextComputerMove()
+            onWhiteTurn?.invoke() ?: doEngineMove()
         }
     }
 
@@ -68,14 +68,14 @@ class Game(
             // execute next turn on separate thread, to not block the visualizer and code execution of other players
             thread {
                 when (board.turn) {
-                    PieceColor.White -> onWhiteTurn?.invoke() ?: doNextComputerMove()
-                    PieceColor.Black -> onBlackTurn?.invoke() ?: doNextComputerMove()
+                    PieceColor.White -> onWhiteTurn?.invoke() ?: doEngineMove()
+                    PieceColor.Black -> onBlackTurn?.invoke() ?: doEngineMove()
                 }
             }
         }
     }
 
-    fun doNextComputerMove() {
+    fun doEngineMove() {
         val computerMove = computerEngine.getBestMove(board)
         computerMove.execute(this)
     }
