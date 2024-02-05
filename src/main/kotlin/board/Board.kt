@@ -40,7 +40,7 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     /**
      * Sets a piece at a given position.
      */
-    public fun setPiece(position: Position, piece: Piece?) {
+    fun setPiece(position: Position, piece: Piece?) {
         board[position.x][position.y] = piece
     }
 
@@ -127,8 +127,9 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     }
 
     fun isThreefoldRepetition(): Boolean {
-        // TODO enable again
-        return false //moves.groupBy { it }.any { it.value.size >= 3 }
+        return false
+        // TODO implement threefold repetition correctly, this method causes bugs in detecting threefold repetition
+        // return moves.groupBy { it }.any { it.value.size >= 3 }
     }
 
     fun isFiftyMoveRule(): Boolean {

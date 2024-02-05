@@ -10,7 +10,7 @@ import kotlin.concurrent.thread
 fun main() {
     println("Chess")
 
-    playGames(n = 5, delayBetweenMoves = 1500, delayBetweenGames = 1000, concurrent = false, asColor = setOf(PieceColor.Black))
+    playGames(n = 5, delayBetweenMoves = 0, delayBetweenGames = 1000, concurrent = false)
 }
 
 fun playGames(
@@ -47,8 +47,11 @@ fun playGame(
     val game = Game(randomMoveDelay = delayBetweenMoves)
     var visualizer: Visualizer? = null
 
-    game.onWhiteTurn = {
+    game.onBlackTurn = {
         game.doNextComputerMove()
+    }
+    game.onWhiteTurn = {
+        game.doRandomValidMove()
     }
 
     // add listener to close visualizer when game is over
