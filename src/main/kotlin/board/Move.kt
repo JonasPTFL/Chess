@@ -1,6 +1,5 @@
 package board
 
-import game.Game
 import pieces.Piece
 import pieces.PieceColor
 import pieces.PieceType
@@ -8,10 +7,13 @@ import pieces.PieceType
 data class Move(val piece: Piece, val from: Position, val to: Position, val moveType: MoveType = MoveType.Normal) {
     private var capturedPiece: Piece? = null
     private var pieceHasMoved = piece.hasMoved
+    private var promotionPiece: Piece? = null
+    // TODO improve move structure with inheritance for castling, promotion, etc. moves
+    private var castlingRookPosition: Position? = null
+    private var castlingKingPosition: Position? = null
 
-    fun execute(game: Game) {
-        internalExecute(game.board)
-        game.onMoveExecuted(this)
+    fun execute(board: Board) {
+        internalExecute(board)
     }
 
     private fun internalExecute(board: Board){
@@ -22,18 +24,16 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
             moveType == MoveType.EnPassant -> applyEnPassant(board)
             moveType == MoveType.Promotion -> {
                 board.movePiece(from, to)
-                piece.move(to)
-                val promotionPiece = board.getPromotionPiece(to)
-                promotionPiece.move(to)
+                promotionPiece = board.getPromotionPiece(to)
+                promotionPiece!!.move(to)
                 board.setPiece(to, promotionPiece)
             }
             else -> {
                 board.movePiece(from, to)
-                piece.move(to)
             }
         }
         board.changeTurn()
-        board.addMove(this)
+        board.history.add(this)
     }
 
     fun executeOnNewBoard(board: Board): Board {
@@ -43,16 +43,21 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
 
     fun revert(board: Board) {
         if (moveType == MoveType.Promotion) {
+            // TODO promoted piece is not reverted right, on rever, the default queen piece will be set
             board.setPiece(to, piece)
         }
-        board.movePiece(to, from)
-        piece.move(from)
-        val capturedPiecePosition = if (moveType == MoveType.EnPassant) getEnpassantCapturePosition() else to
-        // revert captured piece, use en passant position if move was en passant
-        board.setPiece(capturedPiecePosition, capturedPiece)
+        if (moveType.isCastling()) {
+            board.movePiece(castlingKingPosition!!, from)
+            board.movePiece(castlingRookPosition!!, to)
+        } else {
+            board.movePiece(to, from)
+            val capturedPiecePosition = if (moveType == MoveType.EnPassant) getEnpassantCapturePosition() else to
+            // revert captured piece, use en passant position if move was en passant
+            board.setPiece(capturedPiecePosition, capturedPiece)
+        }
         piece.hasMoved = pieceHasMoved
         board.changeTurn()
-        board.removeLastMove()
+        board.history.removeLastMove()
     }
 
     fun isCheckSafe(board: Board, color: PieceColor): Boolean {
@@ -63,18 +68,15 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
     }
 
     private fun applyCastling(board: Board) {
-        val rookPosition = if (moveType == MoveType.CastlingQueenSide) Position(3, to.y) else Position(5, to.y)
-        val kingPosition = if (moveType == MoveType.CastlingKingSide) Position(6, to.y) else Position(2, to.y)
-        board.movePiece(from, kingPosition)
-        board.movePiece(to, rookPosition)
-        piece.move(kingPosition)
-        board.getPiece(rookPosition)?.move(rookPosition)
+        castlingKingPosition = if (moveType == MoveType.CastlingKingSide) Position(6, to.y) else Position(2, to.y)
+        castlingRookPosition = if (moveType == MoveType.CastlingQueenSide) Position(3, to.y) else Position(5, to.y)
+        board.movePiece(from, castlingKingPosition!!)
+        board.movePiece(to, castlingRookPosition!!)
     }
 
     private fun applyEnPassant(board: Board) {
         val enPassantPosition = getEnpassantCapturePosition()
         board.movePiece(from, to)
-        piece.move(to)
         capturedPiece = board.getPiece(enPassantPosition)
         board.setPiece(enPassantPosition, null)
     }
@@ -89,6 +91,45 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
 
     override fun toString(): String {
         return "${piece.color} ${piece.type} from ${from.x},${from.y} to ${to.x},${to.y}"
+    }
+
+    fun toShortAlgebraicNotation(blackPiecesUppercase: Boolean = false): String {
+        val pieceNotation = if (blackPiecesUppercase) piece.type.fenNotationCharacter.uppercase() else piece.type.getFENNotation(piece.color)
+        val destinationNotation = to.toAlgebraicNotation()
+
+        val moveTypeNotation = when(moveType) {
+            MoveType.CastlingKingSide -> "O-O"
+            MoveType.CastlingQueenSide -> "O-O-O"
+            MoveType.Promotion -> {
+                if (promotionPiece == null) throw IllegalStateException("promotion piece not set")
+                destinationNotation + "=" + promotionPiece!!.type.fenNotationCharacter.uppercase()
+            }
+            else -> destinationNotation
+        }
+        // TODO check for check and checkmate correctly, in relation to the board state when move was executed
+        // board at this point is needed to check for check and checkmate, or?
+        val checkNotation = when {
+            // isMoveCausingCheckmate() -> "#"
+            // isMoveCausingCheck -> "+"
+            else -> ""
+        }
+
+        // build move notation
+        val moveNotation = StringBuilder()
+        // no piece notation for pawns
+        if (piece.type != PieceType.Pawn) moveNotation.append(pieceNotation)
+        // check for disambiguation
+        // TODO disambiguation notation
+        // add capture notation
+        if (hasCapturedPiece()){
+            moveNotation.append("x")
+        }
+        // add destination notation
+        moveNotation.append(moveTypeNotation)
+        // add check notation
+        moveNotation.append(checkNotation)
+
+        return moveNotation.toString()
     }
 
     companion object {
@@ -106,7 +147,10 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
                     }
                 }
                 PieceType.Pawn -> {
-                    if (to.y == 0 || to.y == 7) MoveType.Promotion
+                    if (to.y == 0 || to.y == 7) {
+                        // TODO get desired promotion piece from move string
+                        MoveType.Promotion
+                    }
                     else if (to.x != from.x) MoveType.EnPassant
                     else MoveType.Normal
                 }

@@ -43,6 +43,8 @@ class Visualizer(
     private val colorBlack = Color.decode("#6d523b")
     private val colorSelectedBlackSquare = Color.decode("#525332")
     private val colorSelectedWhiteSquare = Color.decode("#6b7455")
+    private val colorLastMoveIndicatorBlackSquare = Color.decode("#786f2c")
+    private val colorLastMoveIndicatorWhiteSquare = Color.decode("#939352")
     private val colorPromotionCircleBackground = Color.decode("#b0b0b0")
     private val colorPromotionCircleHighlightedBackground = Color.decode("#cb6a31")
 
@@ -64,8 +66,12 @@ class Visualizer(
     )
     private var lastMousePosition: Point? = null
 
-    private val boardFlipKey = 'f'
-    private val showCoordinatesKey = 'h'
+    private val boardFlipKey = KeyEvent.VK_F
+    private val showCoordinatesKey = KeyEvent.VK_H
+    private val navigateBackwardKey = KeyEvent.VK_LEFT
+    private val navigateForwardMoveKey = KeyEvent.VK_RIGHT
+    private val undoLastMove = KeyEvent.VK_COMMA
+    private val redoLastMove = KeyEvent.VK_PERIOD
 
     init {
         title = "Chess"
@@ -110,7 +116,7 @@ class Visualizer(
                         val xPanelCoordinate = x.toPanelXPosition()
                         val yPanelCoordinate = y.toPanelYPosition()
                         val position = Position(x, y)
-                        val piece = board.getPiece(position)
+                        val piece = board.history.currentlyNavigatedBoard.getPiece(position)
                         drawSquareBackground(g, xPanelCoordinate, yPanelCoordinate, position)
 
                         if (piece != null) drawPieceTexture(g, xPanelCoordinate, yPanelCoordinate, piece)
@@ -135,12 +141,12 @@ class Visualizer(
         }
         val mouseListener = object : MouseAdapter() {
             override fun mousePressed(e: MouseEvent) {
-                if (!game.isRunning() || !allowedToMove) return
+                if (!game.isRunning() || !allowedToMove || board.history.isNavigatedAway()) return
                 if (promotionMove != null) {
                     promotionPieceTypes.forEachIndexed { index, pieceType ->
                         if (isMouseHoveringOverPromotionPiece(index)) {
                             selectedPromotionPiece = pieceType
-                            promotionMove?.execute(game)
+                            promotionMove?.let { game.executeMove(it) }
                             promotionMove = null
                             return
                         }
@@ -160,7 +166,7 @@ class Visualizer(
                         selectedPromotionPiece = null
                     } else {
                         // move selected piece, if clicked position is valid
-                        clickedMove?.execute(game)
+                        clickedMove?.let { game.executeMove(it) }
                     }
                     // deselect piece, if clicked position is not valid or move was executed
                     null
@@ -183,18 +189,35 @@ class Visualizer(
     }
 
     override fun keyTyped(e: KeyEvent?) {
-        if (e?.keyChar == boardFlipKey) {
-            boardFlipped = !boardFlipped
-            update()
-        }
-        if (e?.keyChar == showCoordinatesKey) {
-            showCoordinates = !showCoordinates
-            update()
-        }
     }
 
     override fun keyPressed(e: KeyEvent?) {
-
+        when (e?.keyCode) {
+            showCoordinatesKey -> {
+                showCoordinates = !showCoordinates
+                update()
+            }
+            boardFlipKey -> {
+                boardFlipped = !boardFlipped
+                update()
+            }
+            navigateBackwardKey -> {
+                board.history.navigateBackward()
+                update()
+            }
+            navigateForwardMoveKey -> {
+                board.history.navigateForward()
+                update()
+            }
+            undoLastMove -> {
+                board.history.undoLastMove()
+                update()
+            }
+            redoLastMove -> {
+                board.history.redoLastMove()
+                update()
+            }
+        }
     }
 
     override fun keyReleased(e: KeyEvent?) {
@@ -214,6 +237,7 @@ class Visualizer(
 
     private fun drawSquareBackground(g: Graphics, x: Int, y: Int, position: Position) {
         val isSelected = selectedPiece?.position == Position(position.x, position.y)
+        val isLastMovePosition = board.history.currentlyNavigatedBoard.history.getLastMove()?.to == position || board.history.currentlyNavigatedBoard.history.getLastMove()?.from == position
         val isWhiteSquare = position.isWhiteOnPanel()
 
         // determine background color of square
@@ -222,6 +246,10 @@ class Visualizer(
             isSelected && isWhiteSquare -> colorSelectedWhiteSquare
             // selected piece color for black square
             isSelected && !isWhiteSquare -> colorSelectedBlackSquare
+            // last move indicator for white square
+            isLastMovePosition && isWhiteSquare -> colorLastMoveIndicatorWhiteSquare
+            // last move indicator for black square
+            isLastMovePosition && !isWhiteSquare -> colorLastMoveIndicatorBlackSquare
             // white square
             isWhiteSquare -> colorWhite
             // black square

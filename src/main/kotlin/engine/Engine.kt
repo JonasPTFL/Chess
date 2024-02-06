@@ -52,7 +52,7 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
                 alphaBetaPruningMinimax(successor, true, getCurrentDepth(successor))
             }
         }
-        val bestMove = bestBoard.getLastMove() ?: throw IllegalStateException("no move found")
+        val bestMove = bestBoard.history.getLastMove() ?: throw IllegalStateException("no move found")
         return bestMove.copy(piece = board.getPiece(bestMove.from) ?: throw IllegalStateException("no piece found"))
     }
 

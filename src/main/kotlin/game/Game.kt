@@ -22,7 +22,7 @@ class Game(
     var onWhiteTurn: (() -> Unit)? = null,
     var onBlackTurn: (() -> Unit)? = null,
     private val randomMoveDelay: Long = 0,
-    private val stockfishDepth: Int = 10
+    private val stockfishDepth: Int = 2
 ) {
     private val gameStateListeners = mutableListOf<GameStateListener>()
 
@@ -75,7 +75,15 @@ class Game(
                     PieceColor.Black -> onBlackTurn?.invoke() ?: doEngineMove()
                 }
             }
+        } else {
+            // game is over
+            println(board.getPGNString())
         }
+    }
+
+    fun executeMove(move: Move) {
+        move.execute(board)
+        onMoveExecuted(move)
     }
 
     fun doMove(playerType: PlayerType) {
@@ -88,8 +96,7 @@ class Game(
     }
 
     private fun doEngineMove() {
-        val computerMove = computerEngine.getBestMove(board)
-        computerMove.execute(this)
+        executeMove(computerEngine.getBestMove(board))
     }
 
     private fun doRandomValidMove() {
@@ -97,7 +104,7 @@ class Game(
         val pieces = board.getAllPieces(board.turn)
         val validMoves = pieces.flatMap { it.getValidMoves() }
         val randomMove = validMoves.random()
-        randomMove.execute(this)
+        executeMove(randomMove)
     }
 
     private fun doStockfishApiMove() {
@@ -106,7 +113,7 @@ class Game(
                 val bestMove = stockfishApiConnection.getBestMoveHTTPResponse(board.getFENNotationString(), stockfishDepth)
                 bestMove.data.subSequence(9, 13).toString().let { moveString ->
                     val move = Move.fromAlgebraic(moveString, board)
-                    move.execute(this@Game)
+                    executeMove(move)
                 }
             }
         }

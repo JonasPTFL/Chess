@@ -8,7 +8,7 @@ package engine
 
 data class EngineParameters(
     /* search algorithm */
-    val maxDepth: Int = 2,
+    val maxDepth: Int = 3,
     val maxDepthEndgame: Int = 5,
     val maxTime: Long = 50000,
     /* evaluation */

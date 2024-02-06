@@ -28,8 +28,8 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     var turn = PieceColor.White
         private set
 
-    val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }
-    private val moves = mutableListOf<Move>()
+    private val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }
+    val history = History(this)
 
     /**
      * Returns the piece at a given position.
@@ -52,6 +52,7 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
         val piece = getPiece(from)
         setPiece(from, null)
         setPiece(to, piece)
+        piece?.move(to)
     }
 
     fun switchPositions(from: Position, to: Position) {
@@ -134,7 +135,7 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
     }
 
     fun isFiftyMoveRule(): Boolean {
-        return moves.size >= 100 && moves.takeLast(100).all { !it.hasCapturedPiece() && it.piece.type != PieceType.Pawn }
+        return history.moveCount() >= 100 && history.getLastMoves(100).all { !it.hasCapturedPiece() && it.piece.type != PieceType.Pawn }
     }
 
     fun isInSufficientMaterial(): Boolean {
@@ -188,7 +189,7 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
         sb.append(if (turn == PieceColor.White) "w" else "b")
         sb.append(" ")
         // check if castling is possible and add it to the FEN string
-        val castlingMoves = moves.filter { it.moveType.isCastling() }
+        val castlingMoves = history.filter { it.moveType.isCastling() }
         val whiteCanCastle = castlingMoves.none { it.piece.color == PieceColor.White }
         val blackCanCastle = castlingMoves.none { it.piece.color == PieceColor.Black }
         if (!whiteCanCastle && !blackCanCastle) sb.append("-")
@@ -198,7 +199,7 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
         }
         sb.append(" ")
         // check if en passant is possible and add it to the FEN string
-        val lastMove = getLastMove()
+        val lastMove = history.getLastMove()
         if (lastMove != null && lastMove.piece.type == PieceType.Pawn && abs(lastMove.from.y - lastMove.to.y) == 2) {
             sb.append(Position.between(lastMove.from, lastMove.to).toAlgebraicNotation())
         } else {
@@ -206,27 +207,26 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
         }
         sb.append(" ")
         // add half-move counter
-        val halfMoveCounter = moves.takeLastWhile { !it.hasCapturedPiece() && it.piece.type != PieceType.Pawn }.size
+        val halfMoveCounter = history.takeLastWhile { !it.hasCapturedPiece() && it.piece.type != PieceType.Pawn }.size
         sb.append(halfMoveCounter)
         sb.append(" ")
-        sb.append(moves.size / 2)
+        sb.append(history.halfMoveCount())
         return sb.toString()
     }
 
-    fun getMoves(): List<Move> {
-        return moves
-    }
-
-    fun getLastMove(): Move? {
-        return moves.lastOrNull()
-    }
-
-    fun addMove(move: Move) {
-        moves.add(move)
-    }
-
-    fun removeLastMove() {
-        moves.removeLast()
+    fun getPGNString(): String {
+        val sb = StringBuilder()
+        var moveCounter = 1
+        for (i in 0 until history.moveCount() step 2) {
+            sb.append("$moveCounter.${history[i].toShortAlgebraicNotation(true)}")
+            sb.append(" ")
+            if (i + 1 < history.moveCount()) {
+                sb.append(history[i + 1].toShortAlgebraicNotation(true))
+                sb.append(" ")
+            }
+            moveCounter++
+        }
+        return sb.toString()
     }
 
     fun getPromotionPiece(position: Position): Piece {
@@ -240,15 +240,10 @@ class Board(private var onPromotionPieceRequired: ((xPosition: Int) -> PieceType
         this.onPromotionPieceRequired = onPromotionPieceRequired
     }
 
-    fun undoLastMove() {
-        val lastMove = getLastMove() ?: return
-        lastMove.revert(this)
-    }
-
     fun copy(): Board {
         val newBoard = Board()
         newBoard.turn = turn
-        newBoard.moves.addAll(moves)
+        newBoard.history.addAll(history)
         for (x in 0..7) {
             for (y in 0..7) {
                 val piece = getPiece(Position(x, y))

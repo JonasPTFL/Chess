@@ -15,7 +15,7 @@ class Pawn(
         validMoves.addValidMovesInDirection(MoveDirection.UpLeft, MoveDirection.DownLeft, MoveType.OnlyHit)
 
         // check for en passant
-        val lastMove = board.getLastMove()
+        val lastMove = board.history.getLastMove()
         lastMove?.piece?.let { lastMovePiece ->
             if (lastMovePiece.type == PieceType.Pawn && lastMovePiece.isOppositeColor(this)) {
                 val lastMoveFrom = lastMove.from
