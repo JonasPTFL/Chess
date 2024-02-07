@@ -132,6 +132,10 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
         return moveNotation.toString()
     }
 
+    fun toAlgebraic(): String {
+        return from.toAlgebraicNotation() + to.toAlgebraicNotation()
+    }
+
     companion object {
         fun fromAlgebraic(moveString: String, board: Board): Move {
             val from = Position.fromAlgebraicNotation(moveString.substring(0, 2))

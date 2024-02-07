@@ -15,6 +15,8 @@ class SocketConnection(
     private val username: String,
     private val onConnected: () -> Unit,
     private val onConnectionFailed: () -> Unit,
+    private val onGameStart: () -> Unit,
+    private val onOpponentMove: (String) -> Unit
 ) {
     private val websocketHost = "localhost"
     private val websocketPort = 3000
@@ -29,6 +31,7 @@ class SocketConnection(
     }
 
     enum class GameState(val stringRepresentation: String) {
+        START("start"),
         WHITE_TURN("white_turn"),
         BLACK_TURN("black_turn"),
         END("end");
@@ -58,6 +61,7 @@ class SocketConnection(
         }
         onEvent(Events.GAME_STATE) {
             when (GameState.fromString(it)) {
+                GameState.START -> onGameStart()
                 GameState.WHITE_TURN -> checkTurn(true)
                 GameState.BLACK_TURN -> checkTurn(false)
                 GameState.END -> println("Game over")
@@ -65,25 +69,25 @@ class SocketConnection(
         }
         onEvent(Events.OPPONENT_MOVE) {
             println("New opponent move: $it")
+            onOpponentMove(it)
         }
 
         socket.connect()
     }
 
     private fun checkTurn(isWhiteTurn: Boolean) {
-        if (isWhitePlayer() && isWhiteTurn || !isWhitePlayer() && !isWhiteTurn) {
+        if (isWhitePlayerInCurrentGame() && isWhiteTurn || !isWhitePlayerInCurrentGame() && !isWhiteTurn) {
             println("Your turn, make a move...")
-            sendMove("e2e4")
         } else {
             println("Waiting for opponent to make a move...")
         }
     }
 
-    private fun sendMove(move: String) {
+    fun sendMove(move: String) {
         socket.emit(Events.MOVE, move)
     }
 
-    private fun isWhitePlayer() = username == currentlyPlayingGame?.whitePlayer
+    fun isWhitePlayerInCurrentGame() = username == currentlyPlayingGame?.whitePlayer
 
     private fun onEvent(event: String, callback: (String) -> Unit) {
         socket.on(event) {

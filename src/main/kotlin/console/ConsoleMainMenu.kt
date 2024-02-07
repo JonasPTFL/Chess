@@ -11,7 +11,7 @@ import game.PlayerType
 
 class ConsoleMainMenu {
     private val offlineGameManager = OfflineGameManager()
-    private val onlineGameManager = OnlineGameManager()
+    private val onlineGameManager = OnlineGameManager(this::start)
 
     private val menu = Menu(
         title = "Welcome to Chess! Please select an option:",
@@ -20,7 +20,7 @@ class ConsoleMainMenu {
             MenuOption("Play against random moves")  { offlineGameManager.playAgainst(PlayerType.Random) },
             MenuOption("Play against stockfish") { offlineGameManager.playAgainst(PlayerType.Stockfish) },
             MenuOption("Play online") {
-                onlineGameManager.start { start() }
+                onlineGameManager.start()
             },
             MenuOption("Quit") { println("Goodbye!") }
         )
