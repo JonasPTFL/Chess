@@ -4,12 +4,38 @@ import game.GameState
 import game.GameStateListener
 import game.PlayerType
 import gui.Visualizer
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import online.ChessAPI
+import online.LoginData
+import online.SocketConnection
 import pieces.PieceColor
 import javax.swing.SwingUtilities
 import kotlin.concurrent.thread
 
 fun main() {
     println("Chess")
+
+    runBlocking {
+        launch {
+            val chessAPI = ChessAPI()
+            val result = chessAPI.login(LoginData("test", "test"))
+            println("Token: ${result.token}")
+
+            val socketConnection = SocketConnection(result){
+                // on connected
+                runBlocking {
+                    launch {
+                        val gameID = chessAPI.createGame()
+                        println("Game created: $gameID")
+                        val games = chessAPI.getGames()
+                        println("Games: $games")
+                    }
+                }
+            }
+            socketConnection.setup()
+        }
+    }
 
     playGames(
         n = 5,
