@@ -24,15 +24,7 @@ class ChessAPI {
             const val CREATE_GAME = "/create-game"
             const val GAMES = "/games"
             const val JOIN_GAME = "/join-game"
-            const val LEAVE_GAME = "/leave-game"
             const val LOGIN = "/login"
-        }
-
-        object Parameters {
-            const val PLAYER_ID = "playerSocketID"
-            const val GAME_ID = "gameID"
-            const val USERNAME = "username"
-            const val PASSWORD = "password"
         }
 
         fun endpoint(path: String): String {
@@ -69,17 +61,22 @@ class ChessAPI {
      * Creates a new game and returns the game ID
      * @return the gameID or null if the game could not be created
      */
-    suspend fun createGame(): ApiGame {
+    suspend fun createGame(): OnlineGame {
         return client.post(endpoint(Paths.CREATE_GAME)).body()
     }
 
-    suspend fun getGames(): List<ApiGame> {
-        return client.get(endpoint(Paths.GAMES)).body()
+    /**
+     * Creates a new game and returns the game ID
+     * @return the gameID or null if the game could not be created
+     */
+    suspend fun joinGame(gameID: String): OnlineGame {
+        return client.post(endpoint(Paths.JOIN_GAME)) {
+            contentType(ContentType.Application.Json)
+            setBody(JoinGameData(gameID))
+        }.body()
     }
 
-    suspend fun joinGame(gameID: String) {
-        client.post(endpoint(Paths.JOIN_GAME)) {
-            parameter(Parameters.GAME_ID, gameID)
-        }
+    suspend fun getGames(): List<OnlineGame> {
+        return client.get(endpoint(Paths.GAMES)).body()
     }
 }
