@@ -43,17 +43,20 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
         PieceType.King -> if (isEndgame) PieceSquareTables.kingTableEndgame else PieceSquareTables.kingTable
     }
 
+    private fun continuousNPSCalculation(terminationCondition: Boolean) {
+        while (!terminationCondition) {
+            println("Nodes per second: $nodeCounter")
+            nodeCounter = 0
+            Thread.sleep(1000)
+        }
+    }
+
     fun getBestMove(board: Board): Move {
         evaluationStartTime = System.currentTimeMillis()
         var moveFound = false
 
         thread {
-            while (!moveFound) {
-                val nps = nodeCounter / 1000
-                println("Nodes per second: $nps")
-                nodeCounter = 0
-                Thread.sleep(1000)
-            }
+            continuousNPSCalculation(moveFound)
         }
 
         val bestBoard = if (board.turn == PieceColor.White) {
