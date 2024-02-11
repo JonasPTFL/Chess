@@ -36,11 +36,6 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
         board.history.add(this)
     }
 
-    fun executeOnNewBoard(board: Board): Board {
-        internalExecute(board)
-        return board
-    }
-
     fun revert(board: Board) {
         if (moveType == MoveType.Promotion) {
             // TODO promoted piece is not reverted right, on rever, the default queen piece will be set
@@ -134,6 +129,10 @@ data class Move(val piece: Piece, val from: Position, val to: Position, val move
 
     fun toAlgebraic(): String {
         return from.toAlgebraicNotation() + to.toAlgebraicNotation()
+    }
+
+    fun isCapturingPiece(board: Board): Boolean {
+        return board.getPiece(to) != null
     }
 
     companion object {

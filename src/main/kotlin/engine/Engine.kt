@@ -52,6 +52,7 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
     }
 
     fun getBestMove(board: Board): Move {
+        val boardToEvaluate = board.copy()
         evaluationStartTime = System.currentTimeMillis()
         var moveFound = false
 
@@ -59,18 +60,23 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
             continuousNPSCalculation(moveFound)
         }
 
-        val bestBoard = if (board.turn == PieceColor.White) {
-            successorFunction(board).maxBy { successor ->
-                alphaBetaPruningMinimax(successor, false, getCurrentDepth(successor))
+        val bestMove = if (boardToEvaluate.turn == PieceColor.White) {
+            successorFunction(boardToEvaluate).maxBy { move ->
+                move.execute(boardToEvaluate)
+                val eval = alphaBetaPruningMinimax(boardToEvaluate, false, getCurrentDepth(boardToEvaluate))
+                move.revert(boardToEvaluate)
+                eval
             }
         } else {
-            successorFunction(board).minBy { successor ->
-                alphaBetaPruningMinimax(successor, true, getCurrentDepth(successor))
+            successorFunction(boardToEvaluate).minBy { move ->
+                move.execute(boardToEvaluate)
+                val eval = alphaBetaPruningMinimax(boardToEvaluate, true, getCurrentDepth(boardToEvaluate))
+                move.revert(boardToEvaluate)
+                eval
             }
         }
         moveFound = true
-        val bestMove = bestBoard.history.getLastMove() ?: throw IllegalStateException("no move found")
-        return bestMove.copy(piece = board.getPiece(bestMove.from) ?: throw IllegalStateException("no piece found"))
+        return bestMove
     }
 
     private fun alphaBetaPruningMinimax(
@@ -89,16 +95,20 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
 
         return if (maximizingPlayer) {
             var value = Float.NEGATIVE_INFINITY
-            successorFunction(board).forEach { successor ->
-                value = max(value, alphaBetaPruningMinimax(successor, false, depth - 1, alpha, beta))
+            successorFunction(board).forEach { move ->
+                move.execute(board)
+                value = max(value, alphaBetaPruningMinimax(board, false, depth - 1, alpha, beta))
+                move.revert(board)
                 alpha = max(alpha, value)
                 if (value >= beta) return@alphaBetaPruningMinimax value
             }
             value
         } else {
             var value = Float.POSITIVE_INFINITY
-            successorFunction(board).forEach { successor ->
-                value = min(value, alphaBetaPruningMinimax(successor, true, depth - 1, alpha, beta))
+            successorFunction(board).forEach { move ->
+                move.execute(board)
+                value = min(value, alphaBetaPruningMinimax(board, true, depth - 1, alpha, beta))
+                move.revert(board)
                 beta = min(beta, value)
                 if (value < alpha) return@alphaBetaPruningMinimax value
             }
@@ -136,26 +146,20 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
         return depth <= 0 || board.isCheckMate() || board.isDraw() || System.currentTimeMillis() - evaluationStartTime >= parameters.maxTime
     }
 
-    private fun successorFunction(board: Board): List<Board> {
+    private fun successorFunction(board: Board): List<Move> {
         return board.getAllPieces(board.turn).sortedByDescending {
             // sort pieces by value to improve alpha beta pruning
             it.type.value
         }.flatMap { piece ->
-            piece.getValidMoves().map { move ->
-                val copiedBoard = board.copy()
-                val copiedMove = move.copy(piece = copiedBoard.getPiece(move.from)!!)
-                copiedMove.executeOnNewBoard(copiedBoard)
-                move to copiedBoard
-            }.sortedByDescending {
+            piece.getValidMoves().sortedByDescending { move ->
                 // sort moves with captures first to improve alpha beta pruning
                 var sortScore = 0
-                val move = it.first
                 if (move.moveType == MoveType.Promotion) sortScore+=3
-                if (move.hasCapturedPiece()) sortScore+=2
+                if (move.isCapturingPiece(board)) sortScore+=2
                 if (move.moveType.isCastling()) sortScore+=1
 
                 sortScore
-            }.map { it.second }
+            }
         }
     }
 }
