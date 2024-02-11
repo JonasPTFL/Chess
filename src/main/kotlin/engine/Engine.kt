@@ -5,6 +5,7 @@ import board.Move
 import board.MoveType
 import pieces.PieceColor
 import pieces.PieceType
+import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
 
@@ -16,6 +17,8 @@ import kotlin.math.min
 
 class Engine(private val parameters: EngineParameters = EngineParameters()) {
     private var evaluationStartTime = 0L
+
+    private var nodeCounter = 0
 
     init {
         println("Engine initialized")
@@ -42,6 +45,16 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
 
     fun getBestMove(board: Board): Move {
         evaluationStartTime = System.currentTimeMillis()
+        var moveFound = false
+
+        thread {
+            while (!moveFound) {
+                val nps = nodeCounter / 1000
+                println("Nodes per second: $nps")
+                nodeCounter = 0
+                Thread.sleep(1000)
+            }
+        }
 
         val bestBoard = if (board.turn == PieceColor.White) {
             successorFunction(board).maxBy { successor ->
@@ -52,6 +65,7 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
                 alphaBetaPruningMinimax(successor, true, getCurrentDepth(successor))
             }
         }
+        moveFound = true
         val bestMove = bestBoard.history.getLastMove() ?: throw IllegalStateException("no move found")
         return bestMove.copy(piece = board.getPiece(bestMove.from) ?: throw IllegalStateException("no piece found"))
     }
@@ -63,6 +77,7 @@ class Engine(private val parameters: EngineParameters = EngineParameters()) {
         initialAlpha: Float = Float.NEGATIVE_INFINITY,
         initialBeta: Float = Float.POSITIVE_INFINITY
     ): Float {
+        nodeCounter++
         if (terminalTest(board, depth)) {
             return utility(board)
         }
