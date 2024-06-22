@@ -1,3 +1,5 @@
-fun main(args: Array<String>) {
-    println("Hello World!")
+import console.ConsoleMainMenu
+
+fun main() {
+    ConsoleMainMenu().start()
 }

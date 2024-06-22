@@ -12,6 +12,17 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+
+    val ktorVersion: String by project
+
+    dependencies {
+        implementation("io.ktor:ktor-client-core:$ktorVersion")
+        implementation("io.ktor:ktor-client-cio:$ktorVersion")
+        implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+        implementation("io.ktor:ktor-serialization-gson:$ktorVersion")
+        implementation("io.ktor:ktor-client-auth:$ktorVersion")
+        implementation("io.socket:socket.io-client:2.1.0")
+    }
 }
 
 tasks.test {
